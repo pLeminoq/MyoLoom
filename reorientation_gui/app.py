@@ -9,6 +9,7 @@ import tkinter as tk
 from tkinter import ttk
 
 from reorientation_gui.slice_selector import SliceSelector
+from reorientation_gui.state.reorientation import ReorientationState
 from reorientation_gui.transformation_canvas import ReorientationCanvas
 
 """
@@ -16,56 +17,9 @@ RotationGUI: ReorientationCanvas + Canvas zum Anzeigen der Transformation + Slic
 2te RotationGUI die aus einer andere Perspektive drauf schaut?
 """
 
-
-class Transformation:
-    def __init__(self, angle_z, heart_center):
-        self.angle_z = angle_z
-        self.angle_y = 0.0
-        self.angle_x = 0.0
-        self.heart_center = heart_center
-        self.callbacks = []
-
-    def to_sitk(self, sitk_img):
-        _size = sitk_img.GetSize()
-        _slice = self.heart_center[2]
-
-        hrt_ctr = (
-            self.heart_center[0] // 4,
-            self.heart_center[1] // 4,
-            self.heart_center[2],
-        )
-        # print(hrt_ctr, (_slice, _size[1] // 2, _size[0] // 2))
-
-        p_ctr_img = np.array(
-            sitk_img.TransformIndexToPhysicalPoint(
-                (_slice, _size[1] // 2, _size[0] // 2)
-            )
-        )[::-1]
-        p_ctr_heart = np.array(sitk_img.TransformIndexToPhysicalPoint(hrt_ctr[::-1]))[
-            ::-1
-        ]
-        # offset = p_ctr_img - p_ctr_heart
-        offset = p_ctr_heart - p_ctr_img
-
-        translation = sitk.TranslationTransform(3, (offset[1], offset[0], offset[2]))
-        rotation = sitk.Euler3DTransform(
-            p_ctr_img, 0.0, 0.0, np.pi / 2.0 - self.angle_z
-        )
-        return sitk.CompositeTransform([translation, rotation])
-
-    def update(self, angle_z=None, angle_y=None, angle_x=None, heart_center=None):
-        self.angle_z = angle_z if angle_z is not None else self.angle_z
-        self.angle_y = angle_y if angle_y is not None else self.angle_y
-        self.angle_x = angle_x if angle_x is not None else self.angle_x
-        self.heart_center = (
-            heart_center if heart_center is not None else self.heart_center
-        )
-
-        for callback in self.callbacks:
-            callback(self)
-
-    def on_change(self, callback):
-        self.callbacks.append(callback)
+# TODO: Umrechnung von Centerpoint des ReorientationCanvas basierend auf canvas resolution und Bildauflösung
+# TODO: initialen slice basierend auf der maximalen Aktivität (in zentraler Region des Bildes) auswählen?
+# TODO: GesamtErgebnis in eigenem Canvas anzeigen
 
 
 class ImageData:
@@ -99,9 +53,8 @@ def sitk_to_tk(
 
 @dataclass
 class State:
-    # TODO: allow to query transformed image
     image: sitk.Image
-    transformation: Transformation
+    transformation: ReorientationState
 
     def get_reoriented_image(self):
         # copy image so that original is not modified
@@ -120,6 +73,59 @@ class State:
             0.0,
         )
         return image_t
+
+
+def apply_transformation(image: sitk.Image, transformation):
+    image_t = image[:]
+    # image_t.SetOrigin((0.0, 0.0, 0.0))
+    image_t.SetDirection((1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0))
+    return sitk.Resample(
+        image_t,
+        image_t,
+        transformation,
+        sitk.sitkLinear,
+        0.0,
+    )
+
+
+class ReorienationResultCanvas(tk.Canvas):
+
+    def __init__(
+        self,
+        parent: tk.Frame,
+        image: ImageTk,
+        width: int = 512,
+        height: int = 512,
+        line_color: str = "green",
+        dash: Tuple[int, int] = (8, 8),
+    ):
+        super().__init__(parent, width=width, height=height)
+
+        self.image = image
+        self.width = width
+        self.height = height
+        self.line_color = line_color
+        self.dash = dash
+
+        self.id_img = self.create_image(
+            self.width // 2, self.height // 2, image=self.image
+        )
+        self.id_line_h = self.create_line(
+            (0, self.height // 2),
+            (self.width, self.height // 2),
+            fill=line_color,
+            dash=self.dash,
+        )
+        self.id_line_v = self.create_line(
+            (self.width // 2, 0),
+            (self.width // 2, self.height),
+            fill=line_color,
+            dash=self.dash,
+        )
+
+    def update_image(self, image: ImageTk):
+        self.image = image
+        self.itemconfig(self.id_img, image=self.image)
 
 
 class TransversalView(tk.Frame):
@@ -141,10 +147,13 @@ class TransversalView(tk.Frame):
                 self.state.image, _slice=self.slice_selector.slice_var.get()
             ),
         )
-
-        self.img_ref = sitk_to_tk(self.state.get_reoriented_image())
-        self.result_canvas = tk.Canvas(self, width=512, height=512)
-        self.img_id = self.result_canvas.create_image(256, 256, image=self.img_ref)
+        self.canvas_res = ReorienationResultCanvas(
+            self,
+            image=sitk_to_tk(
+                self.state.transformation.apply(),
+                _slice=self.slice_selector.slice_var.get(),
+            ),
+        )
 
         # handle reactivity
         ## update transformation based on reorientation_canvas
@@ -159,7 +168,7 @@ class TransversalView(tk.Frame):
         self.update_transformation()
 
         self.reorientation_canvas.grid(column=0, row=0)
-        self.result_canvas.grid(column=1, row=0)
+        self.canvas_res.grid(column=1, row=0)
         self.slice_selector.grid(column=0, row=1, columnspan=2)
         # self.canvas.on_change(t_callback)
 
@@ -167,20 +176,93 @@ class TransversalView(tk.Frame):
         self.reorientation_canvas.update_img(
             sitk_to_tk(self.state.image, _slice=self.slice_selector.slice_var.get())
         )
-
-        self.img_ref = sitk_to_tk(
-            self.state.get_reoriented_image(),
-            _slice=self.slice_selector.slice_var.get(),
+        self.canvas_res.update_image(
+            sitk_to_tk(
+                self.state.transformation.apply(translation="xy", rotation="z"),
+                _slice=self.slice_selector.slice_var.get(),
+            )
         )
-        self.result_canvas.itemconfig(self.img_id, image=self.img_ref)
 
     def update_transformation(self, *args):
         self.state.transformation.update(
-            angle_z=self.reorientation_canvas.angle,
-            heart_center=[
-                *self.reorientation_canvas.p_center[::-1],
-                self.state.transformation.heart_center[2],
-            ],
+            angle_z=np.pi / 2.0 - self.reorientation_canvas.angle,
+            heart_x=self.reorientation_canvas.p_center[0] // 4,
+            heart_y=self.reorientation_canvas.p_center[1] // 4,
+            coord_type="pixel",
+        )
+
+
+class SideView(tk.Frame):
+    def __init__(self, parent: tk.Frame, state: State):
+        super().__init__(parent)
+
+        self.state = state
+
+        def perm(sitk_image):
+            return sitk.PermuteAxes(sitk_image, (2, 1, 0))
+
+        self.perm = perm
+
+        self.slice_selector = SliceSelector(
+            self,
+            n_slices=self.state.image.GetSize()[2] - 1,
+            # current_slice=self.state.image.GetSize()[2] // 2,
+            current_slice=74,
+            length=256,
+        )
+
+        self.reorientation_canvas = ReorientationCanvas(
+            self,
+            img=sitk_to_tk(
+                self.perm(self.state.image), _slice=self.slice_selector.slice_var.get()
+            ),
+        )
+        self.canvas_res = ReorienationResultCanvas(
+            self,
+            image=sitk_to_tk(
+                self.perm(self.state.transformation.apply()),
+                _slice=self.slice_selector.slice_var.get(),
+            ),
+        )
+
+        # handle reactivity
+        ## update transformation based on reorientation_canvas
+        self.reorientation_canvas.on_change(self.update_transformation)
+        ## update image on slice change
+        self.slice_selector.slice_var.trace_add("write", self.redraw_images)
+        ## update image on transformation change
+        self.state.transformation.on_change(
+            self.redraw_images
+        )  # TODO: the points of the reorientation canvas may also require an update
+
+        self.update_transformation()
+
+        self.reorientation_canvas.grid(column=0, row=0)
+        self.canvas_res.grid(column=1, row=0)
+        self.slice_selector.grid(column=0, row=1, columnspan=2)
+        # self.canvas.on_change(t_callback)
+
+    def redraw_images(self, *args):
+        self.reorientation_canvas.update_img(
+            sitk_to_tk(
+                self.perm(self.state.image), _slice=self.slice_selector.slice_var.get()
+            )
+        )
+        self.canvas_res.update_image(
+            sitk_to_tk(
+                self.perm(
+                    self.state.transformation.apply(translation="zy", rotation="x")
+                ),
+                _slice=self.slice_selector.slice_var.get(),
+            )
+        )
+
+    def update_transformation(self, *args):
+        self.state.transformation.update(
+            angle_x=self.reorientation_canvas.angle,
+            heart_y=self.reorientation_canvas.p_center[1] // 4,
+            heart_z=self.reorientation_canvas.p_center[0] // 4,
+            coord_type="pixel",
         )
 
 
@@ -190,12 +272,45 @@ class RotationGUI(tk.Tk):
 
         state = State(
             image=sitk_img,
-            transformation=Transformation(angle_z=0.0, heart_center=(64, 64, 64)),
+            transformation=ReorientationState(sitk_img),
         )
+        print(state.transformation)
 
         self.view_transversal = TransversalView(self, state)
+        self.view_side = SideView(self, state)
+
+        perm_f = lambda x: sitk.PermuteAxes(x, (1, 2, 0))
+
+        # self.slice_selector = SliceSelector(
+            # self,
+            # n_slices=state.image.GetSize()[1] - 1,
+            # # current_slice=self.state.image.GetSize()[2] // 2,
+            # current_slice=64,
+            # length=256,
+        # )
+        # self.canvas_result = ReorienationResultCanvas(
+            # self,
+            # image=sitk_to_tk(
+                # perm_f(state.transformation.apply()),
+                # _slice=self.slice_selector.slice_var.get(),
+            # ),
+        # )
+
+        # def on_slice_change(*arsg):
+            # print(f"Updaet imge?")
+            # self.canvas_result.update_image(
+                # sitk_to_tk(
+                    # perm_f(state.transformation.apply()),
+                    # _slice=self.slice_selector.slice_var.get(),
+                # )
+            # )
+        # self.slice_selector.slice_var.trace_add("write", on_slice_change)
 
         self.view_transversal.grid(column=0, row=0)
+        self.view_side.grid(column=0, row=1)
+
+        self.canvas_result.grid(column=1, row=0, rowspan=1)
+        self.slice_selector.grid(column=1, row=1, rowspan=1)
 
         self.bind("<Key-q>", lambda event: exit(0))
         ttk.Style().theme_use("clam")
@@ -218,8 +333,15 @@ if __name__ == "__main__":
     sitk_reader = sitk.ImageFileReader()
     sitk_reader.SetFileName(args.file)
     sitk_img = sitk_reader.Execute()
+    # print(sitk_img.GetSize())
     sitk_img = sitk.ConstantPad(sitk_img, (0, 0, 44), (0, 0, 43), 0.0)
     # sitk_img = sitk.PermuteAxes(sitk_img, (2, 1, 0))
+    # print(sitk_img.GetSize())
+
+    # ctr = (64, 64, 64)
+    # ctr_phy = sitk_img.TransformIndexToPhysicalPoint(ctr)
+    # print(sitk_img.GetOrigin())
+    # print(ctr, ctr_phy)
 
     app = RotationGUI(sitk_img)
     app.mainloop()
