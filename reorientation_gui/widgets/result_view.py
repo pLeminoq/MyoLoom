@@ -3,54 +3,38 @@ from typing import List, Tuple
 import SimpleITK as sitk
 import tkinter as tk
 
-from reorientation_gui.state import State, Reorientation, IntState
+from reorientation_gui.state import (
+    State,
+    ReorientationState,
+    IntState,
+    SITKImageState,
+    TransformedSITKImageState,
+)
 from reorientation_gui.widgets.slice_view import SliceView, SliceViewState
+from reorientation_gui.util import transform_image
 
 
 class ResultViewState(State):
 
     def __init__(
         self,
-        sitk_img,
+        sitk_img_state: TransformedSITKImageState,
         size,
-        reorientation: Reorientation,
-        permutation: Tuple[int, int, int],
         title: str,
         axis_labels: List[str],
         mu_map=None,
-        flip_axes: Tuple[bool, bool, bool] = (False, False, False),
     ):
-        self.sitk_img = sitk_img
         self.mu_map = mu_map
-        self.permutation = permutation
-        self.flip_axes = flip_axes
         self.title = title
         self.axis_labels = axis_labels
 
-        self.reorientation = reorientation
-
-        _mu_map = self.transform_image(mu_map) if mu_map is not None else None
+        _mu_map = None if mu_map is not None else None
         self.slice_view_state = SliceViewState(
-            sitk_image=self.transform_image(self.sitk_img),
-            slice=IntState(sitk_img.GetSize()[0] // 2),
+            sitk_img_state=sitk_img_state,
+            slice=IntState(sitk_img_state.value.GetSize()[0] // 2),
             size=size,
             mu_map=_mu_map,
         )
-
-        reorientation.on_change(self.apply_reorientation)
-
-    def apply_reorientation(self, state):
-        _mu_map = self.transform_image(self.mu_map) if self.mu_map is not None else None
-        self.slice_view_state.update(
-            sitk_image=self.transform_image(self.sitk_img),
-            mu_map=_mu_map,
-        )
-
-    def transform_image(self, sitk_image):
-        _img = self.reorientation.apply(sitk_image[:])
-        _img = sitk.PermuteAxes(_img, self.permutation)
-        _img = sitk.Flip(_img, self.flip_axes)
-        return _img
 
 
 class ResultView(tk.Frame):

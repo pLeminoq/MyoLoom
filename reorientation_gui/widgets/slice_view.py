@@ -5,34 +5,41 @@ import numpy as np
 import tkinter as tk
 import SimpleITK as sitk
 
-from reorientation_gui.state import State, IntState
+from reorientation_gui.state import State, IntState, SITKImageState
 from reorientation_gui.widgets.canvas.image import Image, ImageState
 from reorientation_gui.widgets.slice_selector import SliceSelector
+from reorientation_gui.util import normalize_image
 
 
 class SliceViewState(State):
 
-    def __init__(self, sitk_image: sitk.Image, slice: IntState, size: Tuple[int, int], mu_map: Optional[sitk.Image] = None):
+    def __init__(self, sitk_img_state: SITKImageState, slice: IntState, size: Tuple[int, int], mu_map: Optional[sitk.Image] = None):
         super().__init__(verify_change=False)
 
-        self.sitk_image = sitk_image
+        # assert type(sitk_img_state) == SITKImageState
+
+        self.sitk_img_state = sitk_img_state
         self.mu_map = mu_map
 
         self.view_3d, self.mu_map_view = self.compute_view_3d()
+        self.sitk_img_state.on_change(self.update_view_3d)
 
         self.slice = slice
         self.size = size
         self.view = ImageState(self.compute_view())
 
+    def update_view_3d(self, sitk_img_state: SITKImageState):
+        self.view_3d, self.mu_map_view = self.compute_view_3d()
+        self.view.update(self.compute_view())
+        self.notify_change()
+
     def compute_view_3d(self) -> np.array:
-        view = sitk.GetArrayFromImage(self.sitk_image)
-        view = (view - view.min()) / (view.max() - view.min())
-        view = (255 * view).astype(np.uint8)
+        view = sitk.GetArrayFromImage(self.sitk_img_state.value)
+        view = normalize_image(view)
 
         mu_map_view = None
         if self.mu_map is not None:
             mu_map_view = sitk.GetArrayFromImage(self.mu_map)
-            mu_map_view = mu_map_view / 100000
             mu_map_view = np.clip(mu_map_view, a_min=0, a_max=0.2)
             mu_map_view = (mu_map_view - mu_map_view.min()) / (mu_map_view.max() - mu_map_view.min())
             mu_map_view = (255 * mu_map_view).astype(np.uint8)
@@ -47,7 +54,7 @@ class SliceViewState(State):
         if self.mu_map_view is not None:
             view_mu_map = self.mu_map_view[self.slice.value]
             view_mu_map = cv.cvtColor(view_mu_map, cv.COLOR_GRAY2RGB)
-            view = cv.addWeighted(view_mu_map, 0.6, view, 0.6, 0.0)
+            view = cv.addWeighted(view_mu_map, 0.6, view, 1.0, 0.0)
 
         view = cv.resize(view, self.size)
         return view
@@ -86,7 +93,7 @@ class SliceView(tk.Frame):
 
         self.slice_selector = SliceSelector(
             self,
-            n_slices=state.sitk_image.GetSize()[1] - 1,
+            n_slices=state.sitk_img_state.value.GetSize()[1] - 1,
             current_slice=state.slice.value,
             length=self.state.size[0] // 2,
         )

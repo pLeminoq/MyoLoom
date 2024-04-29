@@ -63,20 +63,20 @@ class FileDialog(tk.Toplevel):
         self.selection_spect = FileSelection(
             self.frame,
             label="Image",
-            init_filename=app_state.filename_image.value,
+            init_filename=app_state.file_image_state_spect.filename.value,
         )
-        self.selection_mumap = FileSelection(
+        self.selection_mu_map = FileSelection(
             self.frame,
             label="MuMap",
-            init_filename=app_state.filename_mumap.value,
+            init_filename=app_state.file_image_state_mu_map.filename.value,
         )
         self.button = ttk.Button(self.frame, text="Confirm", command=self.on_confirm)
 
         self.selection_spect.filename.trace_add("write", self.enable_button)
-        self.selection_mumap.filename.trace_add("write", self.enable_button)
+        self.selection_mu_map.filename.trace_add("write", self.enable_button)
 
         self.selection_spect.grid(column=0, row=0, pady=5)
-        self.selection_mumap.grid(column=0, row=1, pady=5)
+        self.selection_mu_map.grid(column=0, row=1, pady=5)
         self.button.grid(column=0, row=2, pady=5)
 
         self.enable_button()
@@ -87,7 +87,7 @@ class FileDialog(tk.Toplevel):
         Validate if the selection is valid (files exist).
         """
         str_spect = self.selection_spect.filename.get()
-        str_mumap = self.selection_mumap.filename.get()
+        str_mumap = self.selection_mu_map.filename.get()
 
         valid_spect = os.path.isfile(str_spect)
         valid_mumap = str_mumap == "" or os.path.isfile(str_mumap)
@@ -106,8 +106,12 @@ class FileDialog(tk.Toplevel):
         if not self.selection_is_valid():
             return
 
-        self.app_state.filename_image.value = self.selection_spect.filename.get()
-        self.app_state.filename_mumap.value = self.selection_mumap.filename.get()
+        self.app_state.file_image_state_spect.filename.value = (
+            self.selection_spect.filename.get()
+        )
+        self.app_state.file_image_state_mu_map.filename.value = (
+            self.selection_mu_map.filename.get()
+        )
 
         # remove the dialog after confirmation
         self.destroy()

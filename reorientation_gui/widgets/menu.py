@@ -1,6 +1,9 @@
 import tkinter as tk
 from tkinter import filedialog
 
+from reorientation_gui.state import AppState
+from reorientation_gui.widgets.file_dialog import FileDialog
+
 # from image_registration_gui.state import app_state
 # from image_registration_gui.widgets.file_dialog import FileDialog
 
@@ -10,8 +13,10 @@ class MenuFile(tk.Menu):
     save the current state.
     """
 
-    def __init__(self, menu_bar, root):
+    def __init__(self, menu_bar, root, app_state):
         super().__init__(menu_bar)
+        self.app_state = app_state
+
         menu_bar.add_cascade(menu=self, label="File")
         root.bind("<Control-s>", lambda event: self.save())
 
@@ -35,6 +40,7 @@ class MenuFile(tk.Menu):
 
     def open(self):
         print("Open")
+        FileDialog(self.app_state)
 
     def save(self):
         print("Save")
@@ -54,11 +60,12 @@ class MenuBar(tk.Menu):
     Menu bar of the app.
     """
 
-    def __init__(self, parent):
+    def __init__(self, parent, app_state: AppState):
         super().__init__(parent)
 
         parent.option_add("*tearOff", False)
         parent["menu"] = self
 
-        self.menu_file = MenuFile(self, parent)
+        self.app_state = app_state
+        self.menu_file = MenuFile(self, parent, app_state)
 

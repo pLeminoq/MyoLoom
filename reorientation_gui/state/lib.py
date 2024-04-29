@@ -49,13 +49,6 @@ class BuiltInState(State):
         super().__init__()
         self.value = value
 
-    def bind(self, other: "BuiltInState"):
-        assert type(self) == type(
-            other
-        ), f"Binding of states is limited to same types {type(self)} != {type(other)}"
-        self.on_change(lambda state: setattr(other, "value", state.value))
-        other.on_change(lambda state: setattr(self, "value", state.value))
-
     def create_t(self, transformation_self_to_other, transformation_other_to_self):
         other = type(self)(transformation_self_to_other(self.value))
         self.on_change(lambda state: setattr(other, "value", transformation_self_to_other(state.value)))
@@ -79,3 +72,16 @@ class StringState(BuiltInState):
 
     def __init__(self, value: str):
         super().__init__(value)
+
+
+class ObjectState(State):
+
+    def __init__(self, value: Any):
+        super().__init__(verify_change=False)
+        self.value = value
+
+    def update(self, value: Any):
+        self.value = value
+        self.notify_change()
+
+
