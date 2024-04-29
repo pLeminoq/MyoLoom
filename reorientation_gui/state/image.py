@@ -1,7 +1,10 @@
+from typing import Optional, Tuple
+
 import numpy as np
 import SimpleITK as sitk
 
 from reorientation_gui.state.lib import ObjectState, StringState, State
+from reorientation_gui.state.reorientation import ReorientationState
 from reorientation_gui.util import (
     get_empty_image,
     load_image,
@@ -27,11 +30,10 @@ class TransformedSITKImageState(SITKImageState):
     def __init__(
         self,
         _sitk_img_state,
-        reorientation_state,
-        permutation=(0, 1, 2),
-        flip_axes=(False, False, False),
+        reorientation_state: Optional[ReorientationState] = None,
+        permutation: Tuple[int, int, int] = (0, 1, 2),
+        flip_axes: Tuple[bool, bool, bool] = (False, False, False),
     ):
-        print(f"Type? {type(_sitk_img_state)}")
         super().__init__(
             transform_image(
                 _sitk_img_state.value, reorientation_state, permutation, flip_axes
@@ -44,7 +46,8 @@ class TransformedSITKImageState(SITKImageState):
         self._sitk_img_state = _sitk_img_state
 
         self._sitk_img_state.on_change(self.internal_update)
-        self.reorientation_state.on_change(self.internal_update)
+        if self.reorientation_state is not None:
+            self.reorientation_state.on_change(self.internal_update)
 
     def internal_update(self, *args):
         self.value = transform_image(

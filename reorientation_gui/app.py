@@ -117,7 +117,6 @@ class App(tk.Tk):
                 slice_view=SliceViewState(
                     sitk_img_state=TransformedSITKImageState(
                         _sitk_img_state=app_state.file_image_state_spect.sitk_img_state,
-                        reorientation_state=app_state.reorientation_state,
                         permutation=(1, 2, 0),
                     ),
                     slice=IntState(64),
