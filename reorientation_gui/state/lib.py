@@ -1,25 +1,28 @@
-from typing import Callable, List
+from typing import Any, Callable, List
 from typing_extensions import Self
+
 
 class State(object):
 
-    def __init__(self):
+    def __init__(self, verify_change: bool = True):
+        self.verify_change = verify_change
+
         self.callbacks: List[Callable[[Self], None]] = []
         self.changed = False
 
     def on_change(self, callback: Callable[[Self], None]):
         self.callbacks.append(callback)
 
-    def notify_change(self):
-        if not self.changed:
+    def notify_change(self, ignore_change: bool = False):
+        if not ignore_change and self.verify_change and not self.changed:
             return
 
+        self.changed = False
         for cb in self.callbacks:
             cb(self)
-        self.changed = False
 
     def __setattr__(self, name, new_value):
-        if name == "changed" or name == "callbacks":
+        if name == "verify_change" or name == "changed" or name == "callbacks":
             super().__setattr__(name, new_value)
             return
 
@@ -30,45 +33,49 @@ class State(object):
             super().__setattr__(name, new_value)
             return
 
-        if new_value == old_value:
+        if self.verify_change and new_value == old_value:
             return
 
         super().__setattr__(name, new_value)
         self.changed = True
 
+        if issubclass(type(self), BuiltInState):
+            self.notify_change()
 
 
+class BuiltInState(State):
 
-if __name__ == "__main__":
-    class TestState(State):
-        def __init__(self):
-            super().__init__()
-            self.number = 0.0
-            self.str = "hello"
-            self.list = [1.0, 2.0, 3.0]
-            self.tuple = (0.0, 1.0)
+    def __init__(self, value: Any):
+        super().__init__()
+        self.value = value
 
-    test = TestState()
-    test.on_change(lambda x: print(f"State ({test.number}, {test.str}, {test.list}, {test.tuple}) changed!"))
+    def bind(self, other: "BuiltInState"):
+        assert type(self) == type(
+            other
+        ), f"Binding of states is limited to same types {type(self)} != {type(other)}"
+        self.on_change(lambda state: setattr(other, "value", state.value))
+        other.on_change(lambda state: setattr(self, "value", state.value))
 
-    test.notify_change()
-    test.number = 1.0
-    test.notify_change()
-    test.number = 1.0
-    test.notify_change()
-    test.notify_change()
-
-    print()
-    test.str = "hello"
-    test.notify_change()
-    test.str = "world"
-    test.notify_change()
-    test.notify_change()
-
-    print()
-    test.list = [1.0, 2.0, 3.0]
-    test.notify_change()
-    test.list = [1.0, -2.0, 3.0]
-    test.notify_change()
+    def create_t(self, transformation_self_to_other, transformation_other_to_self):
+        other = type(self)(transformation_self_to_other(self.value))
+        self.on_change(lambda state: setattr(other, "value", transformation_self_to_other(state.value)))
+        other.on_change(lambda state: setattr(self, "value", transformation_other_to_self(state.value)))
+        return other
 
 
+class IntState(BuiltInState):
+
+    def __init__(self, value: int):
+        super().__init__(value)
+
+
+class FloatState(BuiltInState):
+
+    def __init__(self, value: float):
+        super().__init__(value)
+
+
+class StringState(BuiltInState):
+
+    def __init__(self, value: str):
+        super().__init__(value)
