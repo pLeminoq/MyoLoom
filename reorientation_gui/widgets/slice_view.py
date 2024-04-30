@@ -13,16 +13,15 @@ from reorientation_gui.util import normalize_image
 
 class SliceViewState(State):
 
-    def __init__(self, sitk_img_state: SITKImageState, slice: IntState, size: Tuple[int, int], mu_map: Optional[sitk.Image] = None):
+    def __init__(self, sitk_img_state: SITKImageState, slice: IntState, size: Tuple[int, int], mu_map_img_state: SITKImageState):
         super().__init__(verify_change=False)
 
-        # assert type(sitk_img_state) == SITKImageState
-
         self.sitk_img_state = sitk_img_state
-        self.mu_map = mu_map
+        self.mu_map_img_state = mu_map_img_state
 
         self.view_3d, self.mu_map_view = self.compute_view_3d()
         self.sitk_img_state.on_change(self.update_view_3d)
+        self.mu_map_img_state.on_change(self.update_view_3d)
 
         self.slice = slice
         self.size = size
@@ -37,12 +36,8 @@ class SliceViewState(State):
         view = sitk.GetArrayFromImage(self.sitk_img_state.value)
         view = normalize_image(view)
 
-        mu_map_view = None
-        if self.mu_map is not None:
-            mu_map_view = sitk.GetArrayFromImage(self.mu_map)
-            mu_map_view = np.clip(mu_map_view, a_min=0, a_max=0.2)
-            mu_map_view = (mu_map_view - mu_map_view.min()) / (mu_map_view.max() - mu_map_view.min())
-            mu_map_view = (255 * mu_map_view).astype(np.uint8)
+        mu_map_view = sitk.GetArrayFromImage(self.mu_map_img_state.value)
+        mu_map_view = normalize_image(mu_map_view, clip=0.2)
 
         return view, mu_map_view
 
@@ -51,11 +46,10 @@ class SliceViewState(State):
         view = cv.applyColorMap(view, cv.COLORMAP_INFERNO)
         view = cv.cvtColor(view, cv.COLOR_BGR2RGB)
 
-        if self.mu_map_view is not None:
-            view_mu_map = self.mu_map_view[self.slice.value]
-            view_mu_map = cv.cvtColor(view_mu_map, cv.COLOR_GRAY2RGB)
-            view = cv.addWeighted(view_mu_map, 0.6, view, 1.0, 0.0)
+        view_mu_map = self.mu_map_view[self.slice.value]
+        view_mu_map = cv.cvtColor(view_mu_map, cv.COLOR_GRAY2RGB)
 
+        view = cv.addWeighted(view_mu_map, 0.6, view, 1.0, 0.0)
         view = cv.resize(view, self.size)
         return view
 

@@ -15,7 +15,6 @@ class RectangleState(State):
         self.color = color
 
         self.center.on_change(lambda p: self.notify_change(ignore_change=True))
-        self.center.on_change(lambda p: print(f"Center has changed?"))
 
     def update(self, size: Optional[int], color: Optional[str]):
         size = size if size is not None else self.size

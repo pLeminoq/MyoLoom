@@ -22,25 +22,23 @@ class ResultViewState(State):
         size,
         title: str,
         axis_labels: List[str],
-        mu_map=None,
+        mu_map_img_state: TransformedSITKImageState,
     ):
-        self.mu_map = mu_map
         self.title = title
         self.axis_labels = axis_labels
 
-        _mu_map = None if mu_map is not None else None
         self.slice_view_state = SliceViewState(
             sitk_img_state=sitk_img_state,
+            mu_map_img_state=mu_map_img_state,
             slice=IntState(sitk_img_state.value.GetSize()[0] // 2),
             size=size,
-            mu_map=_mu_map,
         )
 
         # reset slice if a new image is shown
         sitk_img_state._sitk_img_state.on_change(self.reset_slice)
+        # mu_map_img_state._sitk_img_state.on_change(self.reset_slice)
 
     def reset_slice(self, state):
-        print(f"Reset slices...")
         self.slice_view_state.slice.value = state.value.GetSize()[0] // 2
 
 

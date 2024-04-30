@@ -25,9 +25,7 @@ from reorientation_gui.widgets.menu import MenuBar
 from reorientation_gui.widgets.result_view import ResultView, ResultViewState
 
 # ToDo's
-# Reset Points in ReorientationView if new image is loaded
 # Replace mu map with according sitk_img_state
-# save reorientation to csv: serialize app state as row with values [filename, angle_x, angle_y, angle_z, ]
 
 
 class App(tk.Tk):
@@ -35,9 +33,10 @@ class App(tk.Tk):
     def __init__(self, app_state: AppState):
         super().__init__()
 
-        size = (512, 512)
-        mu_map = app_state.file_image_state_mu_map.sitk_img_state.value
-        rect_size=10
+        # these parameters should be part of the app state
+        _size = (self.winfo_screenheight() - 350) // 2
+        rect_size = round(_size * 0.02)
+        size = (_size, _size)
 
         scale = (
             size[0] / app_state.file_image_state_spect.sitk_img_state.value.GetSize()[0]
@@ -57,9 +56,11 @@ class App(tk.Tk):
                     sitk_img_state=TransformedSITKImageState(
                         _sitk_img_state=app_state.file_image_state_spect.sitk_img_state,
                     ),
+                    mu_map_img_state=TransformedSITKImageState(
+                        _sitk_img_state=app_state.file_image_state_mu_map.sitk_img_state
+                    ),
                     slice=app_state.reorientation_state.center_z,
                     size=size,
-                    mu_map=mu_map,
                 ),
                 rect_center=RectangleState(
                     center=Point(
@@ -91,10 +92,9 @@ class App(tk.Tk):
                     ),
                     slice=IntState(64),
                     size=size,
-                    mu_map=(
-                        sitk.PermuteAxes(mu_map[:], (1, 2, 0))
-                        if mu_map is not None
-                        else None
+                    mu_map_img_state=TransformedSITKImageState(
+                        _sitk_img_state=app_state.file_image_state_mu_map.sitk_img_state,
+                        permutation=(1, 2, 0),
                     ),
                 ),
                 rect_center=RectangleState(
@@ -121,10 +121,13 @@ class App(tk.Tk):
                     app_state.file_image_state_spect.sitk_img_state,
                     reorientation_state=app_state.reorientation_state,
                 ),
+                mu_map_img_state=TransformedSITKImageState(
+                    _sitk_img_state=app_state.file_image_state_mu_map.sitk_img_state,
+                    reorientation_state=app_state.reorientation_state,
+                ),
                 size=size,
                 title="Horizontal Long Axis (HLA)",
                 axis_labels=["Apex", "Septal", "Lateral", "Basis"],
-                mu_map=mu_map,
             ),
         )
         self.sa = ResultView(
@@ -136,10 +139,15 @@ class App(tk.Tk):
                     permutation=(2, 0, 1),
                     flip_axes=(True, False, False),
                 ),
+                mu_map_img_state=TransformedSITKImageState(
+                    _sitk_img_state=app_state.file_image_state_mu_map.sitk_img_state,
+                    reorientation_state=app_state.reorientation_state,
+                    permutation=(2, 0, 1),
+                    flip_axes=(True, False, False),
+                ),
                 size=size,
                 title="Short Axis (SA)",
                 axis_labels=["Anterior", "Septal", "Lateral", "Inferior"],
-                mu_map=mu_map,
             ),
         )
         self.vla = ResultView(
@@ -151,10 +159,17 @@ class App(tk.Tk):
                     permutation=(1, 2, 0),
                     flip_axes=(True, True, False),
                 ),
+                mu_map_img_state=(
+                    TransformedSITKImageState(
+                        _sitk_img_state=app_state.file_image_state_mu_map.sitk_img_state,
+                        reorientation_state=app_state.reorientation_state,
+                        permutation=(1, 2, 0),
+                        flip_axes=(True, True, False),
+                    )
+                ),
                 size=size,
                 title="Vertical Long Axis (VLA)",
                 axis_labels=["Anterior", "Basis", "Apex", "Inferior"],
-                mu_map=mu_map,
             ),
         )
 
@@ -174,17 +189,17 @@ if __name__ == "__main__":
     from reorientation_gui.util import load_image, square_pad
     from reorientation_gui.widgets.file_dialog import FileDialog
 
-
     app_state = AppState()
 
     # dialog = FileDialog(app_state)
     # dialog.grab_set()
     # dialog.wait_window()
-
     app_state.file_image_state_spect.filename.value = (
-        "data/mpi_spect_reorientation/0001-recon.dcm"
+        "data/mpi_spect_reorientation/0002-recon.dcm"
+    )
+    app_state.file_image_state_mu_map.filename.value = (
+        "data/mpi_spect_reorientation-mu_maps/0002-mu_map.dcm"
     )
 
-    # app = App(sitk_img, mu_map)
     app = App(app_state)
     app.mainloop()
