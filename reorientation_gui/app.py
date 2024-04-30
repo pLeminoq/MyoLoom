@@ -24,16 +24,15 @@ from reorientation_gui.widgets.reorientation_view import (
 from reorientation_gui.widgets.menu import MenuBar
 from reorientation_gui.widgets.result_view import ResultView, ResultViewState
 
-# ToDo's
-# Replace mu map with according sitk_img_state
-
 
 class App(tk.Tk):
 
     def __init__(self, app_state: AppState):
         super().__init__()
 
-        # these parameters should be part of the app state
+        self.title("MPI SPECT Reorientation")
+
+        #TODO: these parameters should be part of the app state
         _size = (self.winfo_screenheight() - 350) // 2
         rect_size = round(_size * 0.02)
         size = (_size, _size)
@@ -47,7 +46,7 @@ class App(tk.Tk):
         self.menu_bar = MenuBar(self, app_state)
 
         self.frame_reorie = tk.Frame(
-            self, highlightthickness=2, highlightbackground="black"
+            self, highlightthickness=1, highlightbackground="black"
         )
         self.view_trans = ReorientationView(
             self.frame_reorie,
@@ -114,8 +113,11 @@ class App(tk.Tk):
             ),
         )
 
+        self.frame_result = tk.Frame(
+            self, highlightthickness=1, highlightbackground="black"
+        )
         self.hla = ResultView(
-            self,
+            self.frame_result,
             ResultViewState(
                 sitk_img_state=TransformedSITKImageState(
                     app_state.file_image_state_spect.sitk_img_state,
@@ -131,7 +133,7 @@ class App(tk.Tk):
             ),
         )
         self.sa = ResultView(
-            self,
+            self.frame_result,
             ResultViewState(
                 sitk_img_state=TransformedSITKImageState(
                     app_state.file_image_state_spect.sitk_img_state,
@@ -151,7 +153,7 @@ class App(tk.Tk):
             ),
         )
         self.vla = ResultView(
-            self,
+            self.frame_result,
             ResultViewState(
                 sitk_img_state=TransformedSITKImageState(
                     app_state.file_image_state_spect.sitk_img_state,
@@ -173,33 +175,15 @@ class App(tk.Tk):
             ),
         )
 
-        self.view_trans.grid(column=0, row=0, padx=40, pady=5)
-        self.view_sagittal.grid(column=0, row=1, padx=40, pady=5)
-        self.frame_reorie.grid(column=0, row=0, rowspan=2, padx=10, pady=5)
+        self.view_trans.grid(column=0, row=0, padx=20, pady=5)
+        self.view_sagittal.grid(column=0, row=1, padx=20, pady=5)
+        self.frame_reorie.grid(column=0, row=0, rowspan=2, padx=5, pady=5)
 
-        self.hla.grid(column=1, row=0)
-        self.sa.grid(column=1, row=1)
-        self.vla.grid(column=2, row=1)
+        self.hla.grid(column=0, row=0, padx=(20, 5), pady=5)
+        self.sa.grid(column=0, row=1, padx=(20, 5), pady=5)
+        self.vla.grid(column=1, row=1, padx=(5, 20), pady=5)
+        self.frame_result.grid(column=1, row=0, rowspan=2, padx=5, pady=5)
 
         self.bind("<Key-q>", lambda event: exit(0))
         ttk.Style().theme_use("clam")
 
-
-if __name__ == "__main__":
-    from reorientation_gui.util import load_image, square_pad
-    from reorientation_gui.widgets.file_dialog import FileDialog
-
-    app_state = AppState()
-
-    # dialog = FileDialog(app_state)
-    # dialog.grab_set()
-    # dialog.wait_window()
-    app_state.file_image_state_spect.filename.value = (
-        "data/mpi_spect_reorientation/0002-recon.dcm"
-    )
-    app_state.file_image_state_mu_map.filename.value = (
-        "data/mpi_spect_reorientation-mu_maps/0002-mu_map.dcm"
-    )
-
-    app = App(app_state)
-    app.mainloop()

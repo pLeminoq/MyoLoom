@@ -1,9 +1,9 @@
-from reorientation_gui.state import AppState, StringState
+from reorientation_gui.app import App
+from reorientation_gui.state import AppState
 from reorientation_gui.widgets.file_dialog import FileDialog
 
-print("Hallo?")
-app_state = AppState(filename_image=StringState(""), filename_mumap=StringState(""))
-
-dialog = FileDialog(app_state)
-dialog.grab_set()
-dialog.wait_window()
+app_state = AppState()
+app = App(app_state)
+# open file dialog after startup
+app.after(50, lambda *args: FileDialog(app_state).grab_set())
+app.mainloop()

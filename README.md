@@ -1,4 +1,9 @@
-# ToDo's
-* ImageView so modifizieren, dass sowohl Recon als auch MuMap angezeigt werden können
-* Reorientation canvas mit winkel und distance instanziieren
-* ImageView in SliceView umbenennen und dort den Slice Selector einbauen
+# MPI SPECT Reorientation
+GUI for the manual reorientation of MPI SPECT images.
+
+## Installation
+1. (Optionally,) create and activate a virtual python environment: `python3 -m venv .venv && source .venv/bin/activate`
+2. Install dependencies: `pip3 install -r requirements.txt`
+
+## Usage
+* Launch the application: `python -m reoriantation_gui`

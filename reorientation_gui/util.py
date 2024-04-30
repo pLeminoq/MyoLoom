@@ -56,15 +56,9 @@ def square_pad(sitk_img: sitk.Image, pad_value=0.0) -> sitk.Image:
         padding_lower.append(math.ceil((max_size - s) / 2))
         padding_upper.append(math.floor((max_size - s) / 2))
 
-    print(f" - Square pad with {padding_lower}, {padding_upper}")
-
     return sitk.ConstantPad(
         sitk_img, tuple(padding_lower), tuple(padding_upper), pad_value
     )
-
-
-def img_to_tk(img: np.array) -> ImageTk:
-    return ImageTk.PhotoImage(Image.fromarray(img))
 
 
 def normalize_image(img: np.array, clip: Optional[float] = None) -> np.array:
