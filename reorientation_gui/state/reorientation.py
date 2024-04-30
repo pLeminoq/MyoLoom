@@ -41,8 +41,9 @@ class ReorientationState(State):
         self.center_y.on_change(lambda _: self.notify_change(ignore_change=True))
         self.center_z.on_change(lambda _: self.notify_change(ignore_change=True))
 
-
-    def apply(self, sitk_image: sitk.Image, translation: str = "xyz", rotation: str = "xyz") -> sitk.Image:
+    def apply(
+        self, sitk_image: sitk.Image, translation: str = "xyz", rotation: str = "xyz"
+    ) -> sitk.Image:
         """
         Apply the reorientation to the image.
 
@@ -60,12 +61,16 @@ class ReorientationState(State):
         # create a copy so that the original is not modified
         reoriented = sitk_image[:]
 
-        #TODO: compute center from image
-        center_image = list(map(lambda x: x // 2, sitk_image.GetSize())) 
+        # TODO: compute center from image
+        center_image = list(map(lambda x: x // 2, sitk_image.GetSize()))
         center_heart = [self.center_x.value, self.center_y.value, self.center_z.value]
 
-        center_image = np.array(sitk_image.TransformContinuousIndexToPhysicalPoint(center_image))
-        center_heart = np.array(sitk_image.TransformContinuousIndexToPhysicalPoint(center_heart))
+        center_image = np.array(
+            sitk_image.TransformContinuousIndexToPhysicalPoint(center_image)
+        )
+        center_heart = np.array(
+            sitk_image.TransformContinuousIndexToPhysicalPoint(center_heart)
+        )
         offset = center_heart - center_image
         offset = (
             offset[0] if "x" in translation else 0.0,
@@ -119,14 +124,18 @@ class ReorientationState(State):
         self.angle_y = angle_y if angle_y is not None else self.angle_y
         self.angle_z = angle_z if angle_z is not None else self.angle_z
 
-        self.center_heart[0] = (
-            heart_x if heart_x is not None else self.center_heart[0]
-        )
-        self.center_heart[1] = (
-            heart_y if heart_y is not None else self.center_heart[1]
-        )
-        self.center_heart[2] = (
-            heart_z if heart_z is not None else self.center_heart[2]
-        )
+        self.center_heart[0] = heart_x if heart_x is not None else self.center_heart[0]
+        self.center_heart[1] = heart_y if heart_y is not None else self.center_heart[1]
+        self.center_heart[2] = heart_z if heart_z is not None else self.center_heart[2]
 
         self.notify_change()
+
+    def to_dict(self):
+        return {
+            "angle_x": self.angle_x.value,
+            "angle_y": self.angle_y.value,
+            "angle_z": self.angle_z.value,
+            "center_x": self.center_x.value,
+            "center_y": self.center_y.value,
+            "center_z": self.center_z.value,
+        }

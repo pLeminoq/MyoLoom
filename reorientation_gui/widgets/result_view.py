@@ -36,6 +36,13 @@ class ResultViewState(State):
             mu_map=_mu_map,
         )
 
+        # reset slice if a new image is shown
+        sitk_img_state._sitk_img_state.on_change(self.reset_slice)
+
+    def reset_slice(self, state):
+        print(f"Reset slices...")
+        self.slice_view_state.slice.value = state.value.GetSize()[0] // 2
+
 
 class ResultView(tk.Frame):
 

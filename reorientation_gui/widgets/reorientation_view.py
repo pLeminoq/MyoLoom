@@ -57,6 +57,18 @@ class ReorientationViewState(State):
         self.rect_angle.on_change(lambda _: self.update_angle())
         self.rect_angle.on_change(lambda _: self.notify_change())
 
+        self._rect_center_bck = (self.rect_center.center.x.value, self.rect_center.center.y.value)
+        self._rect_angle = (self.rect_angle.center.x.value, self.rect_angle.center.y.value)
+        self.slice_view.sitk_img_state.on_change(self.reset_points)
+
+
+    def reset_points(self, *args):
+        self.rect_center.center.x.value = self._rect_center_bck[0]
+        self.rect_center.center.y.value = self._rect_center_bck[1]
+
+        self.rect_angle.center.x.value = self._rect_angle[0]
+        self.rect_angle.center.y.value = self._rect_angle[1]
+
     def update_angle(self):
         """
         Update the angle like clockwise.

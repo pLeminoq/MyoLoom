@@ -1,3 +1,6 @@
+import os
+
+import pandas as pd
 import tkinter as tk
 from tkinter import filedialog
 
@@ -6,6 +9,7 @@ from reorientation_gui.widgets.file_dialog import FileDialog
 
 # from image_registration_gui.state import app_state
 # from image_registration_gui.widgets.file_dialog import FileDialog
+
 
 class MenuFile(tk.Menu):
     """
@@ -18,7 +22,12 @@ class MenuFile(tk.Menu):
         self.app_state = app_state
 
         menu_bar.add_cascade(menu=self, label="File")
-        root.bind("<Control-s>", lambda event: self.save())
+        root.bind(
+            "<Control-s>",
+            lambda event: (
+                self.save() if self.save_filename.get() != "" else self.save_as()
+            ),
+        )
 
         # add commands
         self.add_command(label="Open", command=self.open)
@@ -39,20 +48,52 @@ class MenuFile(tk.Menu):
         )
 
     def open(self):
-        print("Open")
         FileDialog(self.app_state)
 
     def save(self):
-        print("Save")
-        # if self.save_filename.get() == "":
-            # return
+        if self.save_filename.get() == "":
+            return
 
-        # app_state.save(self.save_filename.get())
+        _data = self.app_state.reorientation_state.to_dict()
+        _data["filename"] = self.app_state.file_image_state_spect.filename.value
+
+        _dataframe = dict([(key, [value]) for key, value in _data.items()])
+        _dataframe = pd.DataFrame(_dataframe)
+
+        if os.path.isfile(self.save_filename.get()):
+            data = pd.read_csv(self.save_filename.get())
+
+            if len(data[data["filename"] == _data["filename"]]) == 1:
+                data.loc[
+                    data["filename"] == _data["filename"],
+                    [
+                        "angle_x",
+                        "angle_y",
+                        "angle_z",
+                        "center_x",
+                        "center_y",
+                        "center_z",
+                    ],
+                ] = (
+                    _data["angle_x"],
+                    _data["angle_y"],
+                    _data["angle_z"],
+                    _data["center_x"],
+                    _data["center_y"],
+                    _data["center_z"],
+                )
+            else:
+                _data = dict([(key, [value]) for key, value in _data.items()])
+                data = pd.concat([data, _dataframe], ignore_index=True)
+        else:
+            data = _dataframe
+
+        data.sort_values(by="filename", inplace=True)
+        data.to_csv(self.save_filename.get(), index=False)
 
     def save_as(self):
-        print("Save as")
-        # self.save_filename.set(filedialog.asksaveasfilename())
-        # self.save()
+        self.save_filename.set(filedialog.asksaveasfilename())
+        self.save()
 
 
 class MenuBar(tk.Menu):
@@ -68,4 +109,3 @@ class MenuBar(tk.Menu):
 
         self.app_state = app_state
         self.menu_file = MenuFile(self, parent, app_state)
-

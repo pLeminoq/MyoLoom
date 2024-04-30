@@ -25,41 +25,9 @@ from reorientation_gui.widgets.menu import MenuBar
 from reorientation_gui.widgets.result_view import ResultView, ResultViewState
 
 # ToDo's
-# Debuggen, dass Result anzeige richtig
-#  * Open - File Dialog at startup
-#  * FileDialog modifes AppState
-
-
-class AppState(State):
-
-    def __init__(
-        self,
-        # reorientation: ReorientationState,
-        # canvas_resolution: Tuple[int, int] = (512, 512),
-    ):
-        super().__init__()
-
-        # self.reorientation = reorientation
-        # self.canvas_resolution = (512, 512)
-
-        self.file_image_state_spect = FileImageState()
-        self.file_image_state_mu_map = FileImageState()
-        self.reorientation_state = ReorientationState(
-            angle_x=0.0, angle_y=0.0, angle_z=0.0, center_x=64, center_y=64, center_z=64
-        )
-
-        self.file_image_state_spect.on_change(self.reset_reorientation)
-
-    def reset_reorientation(self, file_image_state):
-        size = file_image_state.sitk_img_state.value.GetSize()
-
-        self.reorientation_state.angle_x.value = 0.0
-        self.reorientation_state.angle_y.value = 0.0
-        self.reorientation_state.angle_z.value = 0.0
-
-        self.reorientation_state.center_x.value = size[0] // 2
-        self.reorientation_state.center_y.value = size[1] // 2
-        self.reorientation_state.center_z.value = size[2] // 2
+# Reset Points in ReorientationView if new image is loaded
+# Replace mu map with according sitk_img_state
+# save reorientation to csv: serialize app state as row with values [filename, angle_x, angle_y, angle_z, ]
 
 
 class App(tk.Tk):
@@ -67,8 +35,9 @@ class App(tk.Tk):
     def __init__(self, app_state: AppState):
         super().__init__()
 
-        size = (400, 400)
+        size = (512, 512)
         mu_map = app_state.file_image_state_mu_map.sitk_img_state.value
+        rect_size=10
 
         scale = (
             size[0] / app_state.file_image_state_spect.sitk_img_state.value.GetSize()[0]
@@ -85,8 +54,10 @@ class App(tk.Tk):
             self.frame_reorie,
             ReorientationViewState(
                 slice_view=SliceViewState(
-                    app_state.file_image_state_spect.sitk_img_state,
-                    app_state.reorientation_state.center_z,
+                    sitk_img_state=TransformedSITKImageState(
+                        _sitk_img_state=app_state.file_image_state_spect.sitk_img_state,
+                    ),
+                    slice=app_state.reorientation_state.center_z,
                     size=size,
                     mu_map=mu_map,
                 ),
@@ -99,18 +70,17 @@ class App(tk.Tk):
                             to_visual_scale, to_image_scale
                         ),
                     ),
-                    size=5,
+                    size=rect_size,
                     color="green",
                 ),
                 angle=app_state.reorientation_state.angle_z,
                 distance=30,
                 rect_angle_color="blue",
-                line_color="black",
+                line_color="white",
                 title="Transversal",
             ),
         )
 
-        print(f"Set with {type(app_state.file_image_state_spect.sitk_img_state)}")
         self.view_sagittal = ReorientationView(
             self.frame_reorie,
             ReorientationViewState(
@@ -132,13 +102,13 @@ class App(tk.Tk):
                         x=IntState(size[0] // 2),
                         y=IntState(size[1] // 2),
                     ),
-                    size=5,
+                    size=rect_size,
                     color="green",
                 ),
                 angle=app_state.reorientation_state.angle_y,
                 distance=30,
                 rect_angle_color="blue",
-                line_color="black",
+                line_color="white",
                 title="Saggital",
                 verticle=False,
             ),
@@ -201,22 +171,16 @@ class App(tk.Tk):
 
 
 if __name__ == "__main__":
-    filename = "../dlac/data/second/images/0002-stress-recon_nac_nsc.dcm"
-    filename_mm = "../dlac/data/second/images/0002-stress-mu_map.dcm"
-
     from reorientation_gui.util import load_image, square_pad
     from reorientation_gui.widgets.file_dialog import FileDialog
 
-    # sitk_img = square_pad(load_image(filename))
-    # mu_map = square_pad(load_image(filename_mm))
 
     app_state = AppState()
-    app_state.file_image_state_spect.on_change(
-        lambda state: print(f"Read new image from {state.filename.value}")
-    )
+
     # dialog = FileDialog(app_state)
     # dialog.grab_set()
     # dialog.wait_window()
+
     app_state.file_image_state_spect.filename.value = (
         "data/mpi_spect_reorientation/0001-recon.dcm"
     )
