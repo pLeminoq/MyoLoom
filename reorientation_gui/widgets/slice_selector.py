@@ -24,6 +24,7 @@ class SliceSelector(tk.Frame):
         self.label_max = tk.Label(self, text=f"{n_slices}")
         self.label_current = tk.Label(self, text=f"{self.slice_var.get()}")
 
+        self.slice_var.trace_add("write", lambda *args: self.scale.focus())
         self.slice_var.trace_add(
             "write",
             lambda *args: self.label_current.config(text=f"{self.slice_var.get()}"),
