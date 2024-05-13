@@ -57,10 +57,15 @@ class ReorientationViewState(State):
         self.rect_angle.on_change(lambda _: self.update_angle())
         self.rect_angle.on_change(lambda _: self.notify_change())
 
-        self._rect_center_bck = (self.rect_center.center.x.value, self.rect_center.center.y.value)
-        self._rect_angle = (self.rect_angle.center.x.value, self.rect_angle.center.y.value)
+        self._rect_center_bck = (
+            self.rect_center.center.x.value,
+            self.rect_center.center.y.value,
+        )
+        self._rect_angle = (
+            self.rect_angle.center.x.value,
+            self.rect_angle.center.y.value,
+        )
         self.slice_view.sitk_img_state.on_change(self.reset_points)
-
 
     def reset_points(self, *args):
         self.rect_center.center.x.value = self._rect_center_bck[0]
@@ -97,7 +102,7 @@ class ReorientationViewState(State):
             angle = 0.0
 
         if not self.verticle:
-            angle = (angle - 270) % 360
+            angle = (angle - np.deg2rad(270)) % np.deg2rad(360)
 
         self.angle.value = angle
 
