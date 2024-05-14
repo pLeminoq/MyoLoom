@@ -2,33 +2,26 @@ from typing import Optional
 
 import tkinter as tk
 
-from reorientation_gui.state import Point, State
+from reorientation_gui.state import PointState, HigherState, IntState, StringState
 
 
-class RectangleState(State):
+class RectangleState(HigherState):
 
-    def __init__(self, center: Point, size: int, color: str):
+    def __init__(self, center_state: PointState, size_state: IntState, color_state: StringState):
         super().__init__()
 
-        self.center = center
-        self.size = size
-        self.color = color
-
-        self.center.on_change(lambda p: self.notify_change(ignore_change=True))
-
-    def update(self, size: Optional[int], color: Optional[str]):
-        size = size if size is not None else self.size
-        color = color if color is not None else self.color
-        self.notify_change()
+        self.center_state = center_state
+        self.size_state = size_state
+        self.color_state = color_state
 
     def ltbr(self):
-        size_h = self.size // 2
-        x, y = self.center
+        size_state_h = self.size_state.value // 2
+        x, y = self.center_state.values()
         return [
-            x - size_h,
-            y - size_h,
-            x + size_h,
-            y + size_h,
+            x - size_state_h,
+            y - size_state_h,
+            x + size_state_h,
+            y + size_state_h,
         ]
 
 
@@ -40,11 +33,11 @@ class Rectangle:
 
         self.id = self.canvas.create_rectangle(
             *self.state.ltbr(),
-            fill=self.state.color,
+            fill=self.state.color_state.value,
         )
 
         self.state.on_change(self.redraw)
 
     def redraw(self, state):
         self.canvas.coords(self.id, *state.ltbr())
-        self.canvas.itemconfig(self.id, fill=state.color)
+        self.canvas.itemconfig(self.id, fill=state.color_state.value)

@@ -6,29 +6,20 @@ from PIL import ImageTk
 from PIL import Image as PILImage
 import tkinter as tk
 
-from reorientation_gui.state import State
+from reorientation_gui.state import ObjectState
 
 
-class ImageState(State):
+class ImageState(ObjectState):
 
-    def __init__(self, image: np.array):
-        super().__init__(verify_change=False)
+    def __init__(self, value: np.ndarray):
+        super().__init__(value)
 
         assert (
-            len(image.shape) == 3
-        ), f"Expected an RGB image with 3 dimensions, but got {len(image.shape)}"
+            len(self.value.shape) == 3
+        ), f"Expected an RGB image with 3 dimensions, but got {len(self.value.shape)}"
         assert (
-            image.shape[-1] == 3
-        ), f"Expected the last dimensions to be color which means size 3, but got {image.shape[0]}"
-
-        self.image = image
-
-    def update(self, image: np.array):
-        assert (
-            self.image.shape == image.shape
-        ), f"Got update with a different image shape. Expected {self.image.shape}, but got {image.shape}"
-        self.image = image
-        self.notify_change()
+            self.value.shape[-1] == 3
+        ), f"Expected the last dimensions to be color which means size 3, but got {self.value.shape[0]}"
 
 
 def img_to_tk(img: np.array) -> ImageTk:
@@ -41,13 +32,15 @@ class Image:
         self.canvas = canvas
         self.state = state
 
-        self.img_tk = img_to_tk(self.state.image)
+        self.img_tk = img_to_tk(self.state.value)
         self.img_id = self.canvas.create_image(
-            state.image.shape[0] // 2, state.image.shape[1] // 2, image=self.img_tk
+            self.state.value.shape[0] // 2,
+            self.state.value.shape[1] // 2,
+            image=self.img_tk,
         )
 
         self.state.on_change(self.redraw)
 
     def redraw(self, state):
-        self.img_tk = img_to_tk(state.image)
+        self.img_tk = img_to_tk(state.value)
         self.canvas.itemconfig(self.img_id, image=self.img_tk)

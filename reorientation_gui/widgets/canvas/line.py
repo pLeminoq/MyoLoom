@@ -2,24 +2,17 @@ from typing import Optional
 
 import tkinter as tk
 
-from reorientation_gui.state import Point, State
+from reorientation_gui.state import PointState, HigherState, StringState
 
 
-class LineState(State):
+class LineState(HigherState):
 
-    def __init__(self, start: Point, end: Point, color: str):
+    def __init__(self, start_state: PointState, end_state: PointState, color_state: StringState):
         super().__init__()
 
-        self.start = start
-        self.end = end
-        self.color = color
-
-        self.start.on_change(lambda _: self.notify_change(ignore_change=True))
-        self.end.on_change(lambda _: self.notify_change(ignore_change=True))
-
-    def update(self, color: Optional[str]):
-        color = color if color is not None else self.color
-        self.notify_change()
+        self.start_state = start_state
+        self.end_state = end_state
+        self.color_state = color_state
 
 
 class Line:
@@ -29,13 +22,13 @@ class Line:
         self.state = state
 
         self.id = self.canvas.create_line(
-            *self.state.start,
-            *self.state.end,
-            fill=self.state.color,
+            *self.state.start_state.values(),
+            *self.state.end_state.values(),
+            fill=self.state.color_state.value,
         )
 
         self.state.on_change(self.redraw)
 
     def redraw(self, state):
-        self.canvas.coords(self.id, *state.start, *state.end)
-        self.canvas.itemconfig(self.id, fill=state.color)
+        self.canvas.coords(self.id, *state.start_state.values(), *state.end_state.values())
+        self.canvas.itemconfig(self.id, fill=state.color_state.value)

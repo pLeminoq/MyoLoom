@@ -10,7 +10,7 @@ args = parser.parse_args()
 
 app_state = AppState()
 if args.file is not None:
-    app_state.file_image_state_spect.filename.value = args.file
+    app_state.filename_state.value = args.file
 
 app = App(app_state)
 # open file dialog after startup

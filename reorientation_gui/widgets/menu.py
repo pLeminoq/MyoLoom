@@ -33,6 +33,7 @@ class MenuFile(tk.Menu):
         self.add_command(label="Open", command=self.open)
         self.add_command(label="Save", command=self.save)
         self.add_command(label="Save as", command=self.save_as)
+        self.add_command(label="Load Reorientation", command=self.load_reorientation)
 
         # create a variable for the filename to save as
         self.save_filename = tk.StringVar(value="")
@@ -47,6 +48,29 @@ class MenuFile(tk.Menu):
             ),
         )
 
+    def load_reorientation(self):
+        filename = filedialog.askopenfilename()
+
+        data = pd.read_csv(filename)
+
+        image_filename = os.path.basename(self.app_state.filename_state.value)
+        rows = data[data["filename"] == image_filename]
+
+        if len(rows) == 0:
+            print(f"Could not find reorientation for image {image_filename} in {filename}")
+            return
+
+        row = rows.iloc[0]
+
+        with self.app_state.reorientation_state as state:
+            state.angle_state.x.value = float(row["angle_x"])
+            state.angle_state.y.value = float(row["angle_y"])
+            state.angle_state.z.value = float(row["angle_z"])
+            state.center_state.x.value = int(row["center_x"])
+            state.center_state.y.value = int(row["center_y"])
+            state.center_state.z.value = int(row["center_z"])
+
+
     def open(self):
         FileDialog(self.app_state)
 
@@ -54,8 +78,10 @@ class MenuFile(tk.Menu):
         if self.save_filename.get() == "":
             return
 
-        _data = self.app_state.reorientation_state.to_dict()
-        _data["filename"] = self.app_state.file_image_state_spect.filename.value
+        _data = {}
+        _data.update([(f"angle_{key}", state.value) for key, state in self.app_state.reorientation_state.angle_state.dict().items()])
+        _data.update([(f"center_{key}", state.value) for key, state in self.app_state.reorientation_state.center_state.dict().items()])
+        _data["filename"] = os.path.basename(self.app_state.filename_state.value)
 
         _dataframe = dict([(key, [value]) for key, value in _data.items()])
         _dataframe = pd.DataFrame(_dataframe)

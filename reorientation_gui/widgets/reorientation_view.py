@@ -5,106 +5,115 @@ import numpy as np
 from PIL import Image, ImageTk
 import tkinter as tk
 
-from reorientation_gui.state import Point, State, FloatState
+from reorientation_gui.state import (
+    PointState,
+    HigherState,
+    FloatState,
+    BoolState,
+    StringState,
+)
 from reorientation_gui.widgets.canvas import Line, LineState, Rectangle, RectangleState
 from reorientation_gui.widgets.slice_view import SliceView, SliceViewState
 
 
-class ReorientationViewState(State):
+def cart2pol(x: int, y: int) -> Tuple[float, float]:
+    distance = np.sqrt(x**2 + y**2)
+    angle = np.arctan2(y, x)
+    return distance, angle
+
+
+def pol2cart(distance: float, angle: float) -> Tuple[int, int]:
+    x = distance * np.cos(angle)
+    y = distance * np.sin(angle)
+    return round(x), round(y)
+
+
+class ReorientationViewState(HigherState):
 
     def __init__(
         self,
-        slice_view: SliceViewState,
-        rect_center: RectangleState,
-        angle: FloatState,
-        distance: float,
-        rect_angle_color: str,
-        line_color: str,
-        title: str,
-        verticle: bool = True,
+        slice_view_state: SliceViewState,
+        rect_center_state: RectangleState,
+        angle_state: FloatState,
+        distance_state: FloatState,
+        title_state: StringState,
+        start_angle: FloatState = 0,
     ):
         super().__init__()
 
-        self.slice_view = slice_view
-        self.rect_center = rect_center
-        self.angle = angle
-        self.title = title
-        self.verticle = verticle
+        self.slice_view_state = slice_view_state
+        self.rect_center_state = rect_center_state
+        self.angle_state = angle_state
+        self.distance_state = distance_state
+        self.title_state = title_state
+        self.start_angle = start_angle
 
-        self.rect_angle = RectangleState(
-            center=Point(
-                x=(
-                    rect_center.center.x.value + distance * np.sin(angle.value)
-                    if verticle
-                    else rect_center.center.x.value - distance * np.cos(angle.value)
-                ),
-                y=(
-                    rect_center.center.y.value - distance * np.cos(angle.value)
-                    if verticle
-                    else rect_center.center.y.value + distance * np.sin(angle.value)
-                ),
+        _x, _y = pol2cart(
+            self.distance_state.value, self.angle_state.value + self.start_angle.value
+        )
+        self.rect_angle_1_state = RectangleState(
+            center_state=PointState(
+                x=rect_center_state.center_state.x.value + _x,
+                y=rect_center_state.center_state.y.value + _y,
             ),
-            size=rect_center.size,
-            color=rect_angle_color,
+            size_state=rect_center_state.size_state,
+            color_state="blue",
+        )
+        self.rect_angle_2_state = RectangleState(
+            center_state=PointState(
+                x=rect_center_state.center_state.x.value - _x,
+                y=rect_center_state.center_state.y.value - _y,
+            ),
+            size_state=rect_center_state.size_state,
+            color_state="blue",
         )
         self.line = LineState(
-            start=rect_center.center, end=self.rect_angle.center, color=line_color
+            start_state=self.rect_angle_1_state.center_state,
+            end_state=self.rect_angle_2_state.center_state,
+            color_state="white",
         )
 
-        self.rect_center.on_change(lambda _: self.update_angle())
-        self.rect_center.on_change(lambda _: self.notify_change())
+        self.rect_center_state.center_state.on_change(self.on_rect_center_change)
+        self.rect_angle_1_state.center_state.on_change(self.on_rect_angle_1_change)
+        self.rect_angle_2_state.center_state.on_change(self.on_rect_angle_2_change)
 
-        self.rect_angle.on_change(lambda _: self.update_angle())
-        self.rect_angle.on_change(lambda _: self.notify_change())
-
-        self._rect_center_bck = (
-            self.rect_center.center.x.value,
-            self.rect_center.center.y.value,
+    def on_rect_center_change(self, state):
+        _x, _y = pol2cart(
+            self.distance_state.value, self.angle_state.value + self.start_angle.value
         )
-        self._rect_angle = (
-            self.rect_angle.center.x.value,
-            self.rect_angle.center.y.value,
+        self.rect_angle_1_state.center_state.set(
+            state.x.value + _x,
+            state.y.value + _y,
         )
-        self.slice_view.sitk_img_state.on_change(self.reset_points)
 
-    def reset_points(self, *args):
-        self.rect_center.center.x.value = self._rect_center_bck[0]
-        self.rect_center.center.y.value = self._rect_center_bck[1]
+    def on_rect_angle_1_change(self, state):
+        x_c, y_c = self.rect_center_state.center_state.values()
+        x_a, y_a = self.rect_angle_1_state.center_state.values()
 
-        self.rect_angle.center.x.value = self._rect_angle[0]
-        self.rect_angle.center.y.value = self._rect_angle[1]
+        x = x_a - x_c
+        y = y_a - y_c
 
-    def update_angle(self):
-        """
-        Update the angle like clockwise.
-        """
-        x_c, y_c = self.rect_center.center
-        x_a, y_a = self.rect_angle.center
+        # update position of rect angle 1
+        self.rect_angle_2_state.center_state.x.value = x_c - x
+        self.rect_angle_2_state.center_state.y.value = y_c - y
 
-        if x_a >= x_c and y_a < y_c:
-            dist_x = x_a - x_c
-            dist_y = y_c - y_a
-            angle = np.arctan(dist_x / dist_y)
-        elif x_a > x_c and y_a >= y_c:
-            dist_x = x_a - x_c
-            dist_y = y_a - y_c
-            angle = np.deg2rad(90) + np.arctan(dist_y / dist_x)
-        elif x_a <= x_c and y_a > y_c:
-            dist_x = x_c - x_a
-            dist_y = y_a - y_c
-            angle = np.deg2rad(180) + np.arctan(dist_x / dist_y)
-        elif x_a < x_c and y_a <= y_c:
-            dist_x = x_c - x_a
-            dist_y = y_c - y_a
-            angle = np.deg2rad(270) + np.arctan(dist_y / dist_x)
-        else:
-            # error case: angle point is right on top of the center point
-            angle = 0.0
+        # update angle and distance
+        _distance, _angle = cart2pol(x, y)
+        _angle = (_angle - self.start_angle.value) % (2.0 * np.pi)
 
-        if not self.verticle:
-            angle = (angle - np.deg2rad(270)) % np.deg2rad(360)
+        self.distance_state.value = _distance
+        self.angle_state.value = _angle
 
-        self.angle.value = angle
+    def on_rect_angle_2_change(self, state):
+        x_c, y_c = self.rect_center_state.center_state.values()
+        x_a, y_a = self.rect_angle_2_state.center_state.values()
+
+        x = x_a - x_c
+        y = y_a - y_c
+
+        # update position of rect angle 1
+        self.rect_angle_1_state.center_state.x.value = x_c - x
+        self.rect_angle_1_state.center_state.y.value = y_c - y
 
 
 class ReorientationView(tk.Frame):
@@ -118,23 +127,35 @@ class ReorientationView(tk.Frame):
 
         self.state = state
 
-        self.title = tk.Label(self, text=state.title)
+        self.title = tk.Label(self, text=state.title_state.value)
 
-        self.slice_view = SliceView(self, state.slice_view)
+        self.slice_view = SliceView(self, state=state.slice_view_state)
         self.canvas = self.slice_view.canvas
         self.line = Line(self.canvas, state.line)
-        self.rect_center = Rectangle(self.canvas, state.rect_center)
-        self.rect_angle = Rectangle(self.canvas, state.rect_angle)
+        self.rect_center = Rectangle(self.canvas, state.rect_center_state)
+        self.rect_angle_1 = Rectangle(self.canvas, state.rect_angle_1_state)
+        self.rect_angle_2 = Rectangle(self.canvas, state.rect_angle_2_state)
 
         self.canvas.tag_bind(
             self.rect_center.id,
             "<B1-Motion>",
-            lambda *args: self.rect_center.state.center.update(*self.get_pointer_xy()),
+            lambda *args: self.rect_center.state.center_state.set(
+                *self.get_pointer_xy()
+            ),
         )
         self.canvas.tag_bind(
-            self.rect_angle.id,
+            self.rect_angle_1.id,
             "<B1-Motion>",
-            lambda *args: self.rect_angle.state.center.update(*self.get_pointer_xy()),
+            lambda *args: self.rect_angle_1.state.center_state.set(
+                *self.get_pointer_xy()
+            ),
+        )
+        self.canvas.tag_bind(
+            self.rect_angle_2.id,
+            "<B1-Motion>",
+            lambda *args: self.rect_angle_2.state.center_state.set(
+                *self.get_pointer_xy()
+            ),
         )
 
         self.title.grid(column=0, row=0)
@@ -154,7 +175,7 @@ class ReorientationView(tk.Frame):
         y -= self.slice_view.winfo_rooty()
 
         # clip to canvas dimensions
-        x = max(0, min(x, self.state.slice_view.size[0]))
-        y = max(0, min(y, self.state.slice_view.size[1]))
+        x = max(0, min(x, self.state.slice_view_state.resolution_state.width.value))
+        y = max(0, min(y, self.state.slice_view_state.resolution_state.height.value))
 
         return x, y
