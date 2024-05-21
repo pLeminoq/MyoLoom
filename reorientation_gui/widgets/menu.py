@@ -1,3 +1,7 @@
+"""
+Components of the menu bar.
+"""
+
 import os
 
 import pandas as pd
@@ -7,14 +11,13 @@ from tkinter import filedialog
 from reorientation_gui.state import AppState
 from reorientation_gui.widgets.file_dialog import FileDialog
 
-# from image_registration_gui.state import app_state
-# from image_registration_gui.widgets.file_dialog import FileDialog
-
 
 class MenuFile(tk.Menu):
     """
-    The File menu containing options to open images and to
-    save the current state.
+    The File menu containing options to
+      * open an image
+      * save the current state
+      * restore the state
     """
 
     def __init__(self, menu_bar, root, app_state):
@@ -49,6 +52,9 @@ class MenuFile(tk.Menu):
         )
 
     def load_reorientation(self):
+        """
+        Query the user to open a CSV-file to restore the reorientation parameters.
+        """
         filename = filedialog.askopenfilename()
 
         data = pd.read_csv(filename)
@@ -57,7 +63,9 @@ class MenuFile(tk.Menu):
         rows = data[data["filename"] == image_filename]
 
         if len(rows) == 0:
-            print(f"Could not find reorientation for image {image_filename} in {filename}")
+            print(
+                f"Could not find reorientation for image {image_filename} in {filename}"
+            )
             return
 
         row = rows.iloc[0]
@@ -70,17 +78,32 @@ class MenuFile(tk.Menu):
             state.center_state.y.value = int(row["center_y"])
             state.center_state.z.value = int(row["center_z"])
 
-
     def open(self):
+        """
+        Open a new image with a user dialog.
+        """
         FileDialog(self.app_state)
 
     def save(self):
+        """
+        Save the current reorientation to a file.
+        """
         if self.save_filename.get() == "":
             return
 
         _data = {}
-        _data.update([(f"angle_{key}", state.value) for key, state in self.app_state.reorientation_state.angle_state.dict().items()])
-        _data.update([(f"center_{key}", state.value) for key, state in self.app_state.reorientation_state.center_state.dict().items()])
+        _data.update(
+            [
+                (f"angle_{key}", state.value)
+                for key, state in self.app_state.reorientation_state.angle_state.dict().items()
+            ]
+        )
+        _data.update(
+            [
+                (f"center_{key}", state.value)
+                for key, state in self.app_state.reorientation_state.center_state.dict().items()
+            ]
+        )
         _data["filename"] = os.path.basename(self.app_state.filename_state.value)
 
         _dataframe = dict([(key, [value]) for key, value in _data.items()])
@@ -118,6 +141,9 @@ class MenuFile(tk.Menu):
         data.to_csv(self.save_filename.get(), index=False)
 
     def save_as(self):
+        """
+        Query the user to select a file for saving and then trigger `save()`.
+        """
         self.save_filename.set(filedialog.asksaveasfilename())
         self.save()
 

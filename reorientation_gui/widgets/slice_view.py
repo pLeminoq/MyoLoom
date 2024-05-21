@@ -29,6 +29,20 @@ class SliceViewState(HigherState):
         resolution_state: ResolutionState,
         normalization_state: FloatState,
     ):
+        """
+        State of the `SliceView` widget.
+
+        Parameters
+        ----------
+        sitk_img_state: ObjectState
+            state containing the 3D SITK image to be displayed
+        slice_state: IntState
+            state representing the slice index to be displayed
+        resolution_state: ResolutionState
+            resolution to which images are rescaled
+        normalization_state: FloatState
+            value between in range of [0.0, 1.0] used for percent of maximum normalization
+        """
         super().__init__()
 
         self.sitk_img_state = sitk_img_state
@@ -45,6 +59,9 @@ class SliceViewState(HigherState):
     def view_state(
         self, sitk_img_state: ObjectState, normalization_state: FloatState
     ) -> ObjectState:
+        """
+        Convert the SITK image to an np.array and normalize the image.
+        """
         view = sitk.GetArrayFromImage(sitk_img_state.value)
         view = normalize_image(view, clip=view.max() * normalization_state.value)
         return ObjectState(view)
@@ -56,6 +73,9 @@ class SliceViewState(HigherState):
         slice_state: IntState,
         resolution_state: ResolutionState,
     ) -> ObjectState:
+        """
+        Select a slice to be displayed, apply a color map and resize the image.
+        """
         slice_view = view_state.value[slice_state.value]
         slice_view = cv.applyColorMap(slice_view, cv.COLORMAP_INFERNO)
         slice_view = cv.cvtColor(slice_view, cv.COLOR_BGR2RGB)
@@ -66,6 +86,12 @@ class SliceViewState(HigherState):
 class SliceView(tk.Frame):
 
     def __init__(self, parent: tk.Frame, state: SliceViewState):
+        """
+        Widget to display/view slices of a 3D image.
+
+        The slice view consists of a canvas displaying the image as well as
+        a scale/slider to select the slice of the image.
+        """
         super().__init__(parent)
 
         self.state = state

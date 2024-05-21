@@ -1,3 +1,7 @@
+"""
+Implementation of states.
+"""
+
 from typing import Any, Callable, List, Optional
 from typing_extensions import Self
 
@@ -7,7 +11,9 @@ class State(object):
     A state is a reactive wrapping around values.
 
     It contains a list of callbacks.
-    Callbacks are registered with `on_change` and called on `notify_change`.
+    Callbacks are registered with `on_change` and called when `notify_change` is triggered.
+    Note that all attributes of a state that start with an underscore are private, not wrapped and changes are not tracked.
+    Regarding higher states, note that you can use `with _state_:` to change multiple values before notifying.
     """
 
     def __init__(self):
@@ -15,9 +21,19 @@ class State(object):
         self._active = True
 
     def on_change(self, callback: Callable[[Self], None]):
+        """
+        Register a callback on this state.
+
+        Parameters
+        ----------
+        callback: callable
+        """
         self._callbacks.append(callback)
 
     def notify_change(self):
+        """
+        Notify all callbacks that this state has changed.
+        """
         if not self._active:
             return
 
@@ -38,8 +54,8 @@ class BasicState(State):
     A basic state contains a single value.
 
     Notifications are triggered on reassignment of the value.
-    For primitive values, such as int and string, it is verified
-    if the value changed before notifying.
+    For primitive values, such as int and string, notifications are only triggered
+    if the value changed on reassignment.
     """
 
     def __init__(self, value: Any, verify_change=True):
@@ -84,11 +100,39 @@ class BasicState(State):
         self.notify_change()
 
     def set(self, value: Any):
+        """
+        Simple function for the assignment of the value.
+
+        This function is typically used in lambda functions where assignments are not possible.
+
+        Parameters
+        ----------
+        value: any
+            the new value
+        """
         self.value = value
 
     def create_transformed_state(
         self, self_to_other: Callable[[Any], Any], other_to_self: Callable[[Any], Any]
     ) -> Self:
+        """
+        Create a transformed basic state.
+
+        E.g., this can be used to create a scaled state of a number.
+        Note that both callables need to create an identity mapping: x = other_to_self(self_to_other(x)).
+        Otherwise, value notifications will never stop.
+
+        Parameters
+        ----------
+        self_to_other: callable
+            map the current state to the transformed state
+        other_to_self: callable
+            map the transformed state back to the current state
+
+        Returns
+        -------
+        a transformed state based on calling self_to_other with the current state
+        """
         other = type(self)(self_to_other(self.value))
         self.on_change(
             lambda state: setattr(other, "value", self_to_other(state.value))
@@ -114,6 +158,8 @@ class IntState(BasicState):
 class FloatState(BasicState):
     """
     Implementation of the `BasicState` for a float.
+
+    Float states implement rounding of the number by specifying the desired precision.
     """
 
     def __init__(
@@ -125,6 +171,7 @@ class FloatState(BasicState):
 
     def __setattr__(self, name, new_value):
         if name == "value" and self._precision is not None:
+            # apply precision if defined
             new_value = round(new_value, ndigits=self._precision)
 
         super().__setattr__(name, new_value)
@@ -156,6 +203,7 @@ class ObjectState(BasicState):
     Implementation of the `BasicState` for objects.
 
     This implementation does not verify changes of the internal value.
+    Thus, the equals check to verify if the value changed is skipped.
     """
 
     def __init__(self, value: Any):
@@ -209,6 +257,13 @@ class HigherState(State):
         new_value.on_change(lambda _: self.notify_change())
 
     def dict(self):
+        """
+        Create a dictionary mapping names to states of all internal states.
+
+        Returns
+        -------
+        Dict[str, State]
+        """
         labels = list(filter(lambda l: not l.startswith("_"), self.__dict__.keys()))
         return dict([(label, self.__getattribute__(label)) for label in labels])
 
@@ -228,12 +283,12 @@ class HigherState(State):
 
 def computed_state(func: Callable[[State], State]):
     """
-    Computes annotation for attributes of higher states.
+    Computed annotation for states.
 
-    A computed value should be named the same as its 'computation function', which should be
-    called on its initial assignment.
-    Marking the function with this annotation ensures, that its value is updated every time
-    a value changes on which it depends.
+    A computed state is computed from one or more other states.
+    It is defined by a computation function.
+    A computed state can either be defined by a separate function or as a function and
+    state of a higher state.
 
     Example:
     class SquareNumber(HigherState):
@@ -257,11 +312,11 @@ def computed_state(func: Callable[[State], State]):
         # compute initial value
         computed_value = func(*args)
 
-        # create function that updates the compute value
+        # create function that updates the computed value
         def _on_change(*_args):
             computed_value.value = func(*args).value
 
-        # handling of compute states as values of higher states
+        # handling of computed states as values of higher states
         _args = args[1:] if func.__code__.co_varnames[0] == "self" else args
 
         # validate arguments are states
@@ -281,9 +336,24 @@ def computed_state(func: Callable[[State], State]):
 
 
 class SequenceState(HigherState):
+    """
+    A sequence state is a utility state to handle lists of basic states.
 
-    def __init__(self, values: List[Any], labels: List[str]):
+    It enables iteration, access by index and other utility functions.
+    """
+
+    def __init__(self, values: List[BasicState], labels: List[str]):
         super().__init__()
+        """
+        Initialize a sequence state.
+
+        Parameters
+        ----------
+        values: list of basic state
+            basic states of this sequence
+        labels: list of str
+            labels or names of the basic states
+        """
 
         assert len(values) == len(
             labels
@@ -303,10 +373,17 @@ class SequenceState(HigherState):
     def __len__(self):
         return len(self._labels)
 
-    def values(self):
+    def values(self) -> List[Any]:
+        """
+        Get the values of all internal states as a list.
+        """
         return [attr.value for attr in self]
 
     def set(self, *args):
+        """
+        Reassign all internal basic state values and only
+        trigger a notification afterwards.
+        """
         assert len(args) == len(self)
 
         with self:

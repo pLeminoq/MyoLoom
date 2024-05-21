@@ -19,6 +19,22 @@ class ScaleState(HigherState):
         orientation: str = tk.HORIZONTAL,
         formatter: Callable[[Number], str] = lambda x: f"{x}",
     ):
+        """
+        State of a scale.
+
+        Parameters
+        ----------
+        number_state: NumberState
+            state representing the value of the acle
+        value_range: tuple of number,
+            minimal and maximal value of the scale
+        length: int
+            length of the scale in pixels
+        orientation: str
+            orientation of the scale: horizontal or vertical
+        formatter: callable
+            convert the value of the scale to str for visualization
+        """
         super().__init__()
 
         self.number_state = number_state
@@ -31,6 +47,9 @@ class ScaleState(HigherState):
 class Scale(tk.Frame):
 
     def __init__(self, parent: tk.Frame, state: ScaleState):
+        """
+        Scale widget with which user can select numerical values inside a value range.
+        """
         super().__init__(parent)
 
         self.state = state

@@ -1,3 +1,7 @@
+"""
+Utility functions that mainly are about image operations.
+"""
+
 import math
 from typing import Optional, Tuple
 
@@ -9,10 +13,39 @@ from reorientation_gui.state.reorientation import ReorientationState
 
 
 def get_empty_image(size: Tuple[int, int, int] = (128, 128, 128)) -> sitk.Image:
+    """
+    Create an empty SITK image.
+
+    Parameters
+    ----------
+    size: tuple of int
+        size of the created image
+
+    Returns
+    -------
+    sitk.Image
+    """
     return sitk.Image(size, sitk.sitkFloat64)
 
 
 def load_image(filename: str) -> sitk.Image:
+    """
+    Load an SITK image from a filename.
+
+    This operations
+      * casts the image as float,
+      * ensures that the stacking direction of slices is positive,
+      * and applies a custom scaling used by Siemens SPECT devices
+
+
+    Parameters
+    ----------
+    filename: str
+
+    Returns
+    -------
+    sitk.Image
+    """
     sitk_reader = sitk.ImageFileReader()
     sitk_reader.LoadPrivateTagsOn()
     sitk_reader.SetFileName(filename)
@@ -47,7 +80,23 @@ def load_image(filename: str) -> sitk.Image:
     return sitk_img
 
 
-def square_pad(sitk_img: sitk.Image, pad_value=0.0) -> sitk.Image:
+def square_pad(sitk_img: sitk.Image, pad_value: float = 0.0) -> sitk.Image:
+    """
+    Square pad an SITK image.
+
+    This means that all image dimension have the same size.
+
+    Parameters
+    ----------
+    sitk_img: sitk.Image
+        the image to be padded
+    pad_value: float
+        the constant value used for padding
+
+    Returns
+    -------
+    sitk.Image
+    """
     max_size = max(sitk_img.GetSize())
 
     padding_lower = []
@@ -62,6 +111,20 @@ def square_pad(sitk_img: sitk.Image, pad_value=0.0) -> sitk.Image:
 
 
 def normalize_image(img: np.array, clip: Optional[float] = None) -> np.array:
+    """
+    Normalize an image and convert its type to `np.uint8` for display.
+
+    Parameters
+    ----------
+    img: np.array
+        the image to be normalized
+    clip: optional float
+        clip the maximum value in the image to this value before normalization
+
+    Returns
+    -------
+    np.array
+    """
     if img.max() - img.min() == 0.0:
         return np.zeros(img.shape, np.uint8)
 
@@ -70,15 +133,3 @@ def normalize_image(img: np.array, clip: Optional[float] = None) -> np.array:
     img = (255 * img).astype(np.uint8)
     return img
 
-
-def transform_image(
-    sitk_img: sitk.Image,
-    reorientation_state,
-    permutation: Tuple[int, int, int],
-    flip_axes: Tuple[bool, bool, bool],
-):
-    img = sitk_img[:]
-    img = reorientation_state.apply(img) if reorientation_state is not None else img
-    img = sitk.PermuteAxes(img, permutation)
-    img = sitk.Flip(img, flip_axes)
-    return img

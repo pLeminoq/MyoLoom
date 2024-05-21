@@ -8,6 +8,14 @@ from reorientation_gui.widgets import *
 
 
 class App(tk.Tk):
+    """
+    App for MPI SPECT reorientation.
+
+    The app shows the input image in transversal and saggital view.
+    There, the user may specify the heart center and rotation angles in x and z direction.
+    The result of the reorientation is display in 3 views: horizontal-long-axis, vertical-long-axis and short axis view.
+    Normalization of SPECT images can be configured with a slider.
+    """
 
     def __init__(self, state: AppState):
         super().__init__()

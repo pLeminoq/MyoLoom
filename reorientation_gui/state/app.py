@@ -19,6 +19,24 @@ from reorientation_gui.util import load_image, square_pad, get_empty_image
 
 
 class AppState(HigherState):
+    """
+    App state of the reorientation tool.
+
+    It contains all global base states as well as many
+    computed states.
+    Base States:
+      * filename: filename of the current image
+      * normalization: percentage of maximal value to normalize SPECT images
+      * reorientation: reorientation parameters (angle and translation)
+      * resolution: resolution/size of displayed images
+
+    Computed States:
+      * sitk_img: SPECT image as read by sitk from the filename
+      * sitk_img_saggital: saggital view of the image
+      * img_reoriented: reorientation applied to the image
+      * img_sa: short-axis (sa) view of the reoriented image
+      * img_vla: vertical-long-axis (vla) view of the reoriented image
+    """
 
     def __init__(
         self,
@@ -52,6 +70,11 @@ class AppState(HigherState):
         self.filename_state.on_change(lambda _: self.reset_reorientation())
 
     def reset_reorientation(self):
+        """
+        Reset the reorientation (no translation and no rotation).
+
+        This is typically done when a new image is loaded
+        """
         size = self.sitk_img_state.value.GetSize()
         with self.reorientation_state as state:
             state.angle_state.set(0.0, 0.0, 0.0)

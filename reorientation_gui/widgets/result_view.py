@@ -10,6 +10,9 @@ from reorientation_gui.widgets.slice_view import SliceView, SliceViewState
 class AxisLabelState(SequenceState):
 
     def __init__(self, top: str, left: str, right: str, bottom: str):
+        """
+        Define labels for the top, left, right, and bottom positions of the displayed image.
+        """
         super().__init__(
             values=[top, left, right, bottom],
             labels=["top", "left", "right", "bottom"],
@@ -24,6 +27,18 @@ class ResultViewState(HigherState):
         axis_labels: AxisLabelState,
         slice_view_state: SliceViewState,
     ):
+        """
+        State of the `ResultView` widget.
+
+        Parameters
+        ----------
+        title: str
+            title of the result view, e.g., "Short-Axis View"
+        axis_labels: AxisLabelState
+            labels of the up, down, left and right directions of the displayed image
+        slice_view_state: SliceViewState
+            state configuring the image display
+        """
         super().__init__()
 
         self.title = title
@@ -34,6 +49,13 @@ class ResultViewState(HigherState):
 class ResultView(tk.Frame):
 
     def __init__(self, parent: tk.Frame, state: ResultViewState):
+        """
+        Widget used to display the result of a reorientation.
+
+        It uses a `SliceView` to display an image in one direction.
+        In addition, the center of the image is highlighted with a vertical and a horizontal line,
+        and labels for axis directions are displayed.
+        """
         super().__init__(parent)
 
         self.state = state

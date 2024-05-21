@@ -1,3 +1,7 @@
+"""
+States enable a reactive implementation of widgets.
+"""
+
 from reorientation_gui.state.app import AppState
 from reorientation_gui.state.lib import (
     computed_state,

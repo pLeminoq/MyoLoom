@@ -1,3 +1,7 @@
+"""
+Components for a dialog to open a file.
+"""
+
 import os
 
 import tkinter as tk
@@ -47,9 +51,6 @@ class FileSelection(tk.Frame):
 class FileDialog(tk.Toplevel):
     """
     Dialog to select the image to be reoriented.
-
-    The user has to select the image to be reoriented and can optionally specify
-    a mu-map/ct.
     """
 
     def __init__(self, app_state: AppState):
