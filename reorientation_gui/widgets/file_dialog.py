@@ -68,7 +68,7 @@ class FileDialog(tk.Toplevel):
         )
         self.button = ttk.Button(self.frame, text="Confirm", command=self.on_confirm)
 
-        self.file_selection.filename.trace_add("write", self.enable_button)
+        self.file_selection.filename.trace_add("write", self.on_confirm)
 
         self.file_selection.grid(column=0, row=0, pady=5)
         self.button.grid(column=0, row=1, pady=5)
