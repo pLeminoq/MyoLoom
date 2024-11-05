@@ -65,7 +65,7 @@ def load_image(filename: str) -> sitk.Image:
         spacing_between_slices = float(_sitk_img.GetMetaData("0018|0088"))
         if spacing_between_slices < 0:
             sitk_img = sitk_img[:, :, ::-1]
-    except AttributeError:
+    except RuntimeError:
         pass
 
     try:
@@ -74,7 +74,7 @@ def load_image(filename: str) -> sitk.Image:
         """
         scale = float(_sitk_img.GetMetaData("0033|1038"))
         sitk_img = 1.0 * sitk_img / scale
-    except AttributeError:
+    except RuntimeError:
         pass
 
     return sitk_img
