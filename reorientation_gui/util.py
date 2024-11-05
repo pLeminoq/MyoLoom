@@ -11,6 +11,153 @@ import SimpleITK as sitk
 
 from reorientation_gui.state.reorientation import ReorientationState
 
+def change_spacing(
+    sitk_img: sitk.Image,
+    target_spacing: Tuple[float, float, float],
+    target_shape: Optional[Tuple[int, int, int]] = None,
+) -> sitk.Image:
+    """
+    Change the spacing and size of an SITK image.
+
+    Parameters
+    ----------
+    img: sitk.Image
+        The image of which the spacing and size is changed.
+    target_spacing: tuple of float
+        The new spacing.
+    target_shape: tuple of int, optional
+        The new size which is computed from the old spacing and size
+        if not provided.
+
+    Returns
+    -------
+    sitk.Image
+    """
+    source_shape = np.array(sitk_img.GetSize())
+    source_spacing = np.array(sitk_img.GetSpacing())
+
+    target_spacing = np.array(target_spacing)
+    target_spacing = np.where(target_spacing < 0, source_spacing, target_spacing)
+
+    if target_shape is None:
+        target_shape = (source_shape * source_spacing) / np.array(target_spacing)
+        target_shape = tuple(map(round, target_shape))
+
+    return sitk.Resample(
+        sitk_img,
+        target_shape,
+        sitk.Transform(),
+        sitk.sitkLinear,
+        sitk_img.GetOrigin(),
+        target_spacing,
+        sitk_img.GetDirection(),
+    )
+
+
+def center_crop(sitk_img: sitk.Image, target_shape: Tuple[int, int, int]) -> sitk.Image:
+    """
+    Center crop an SITK image to a target shape.
+
+    Note: channel order in the target shape corresponds to numpy channel
+    order and channels with negative target values will not be cropped.
+
+    Parameters
+    ----------
+    sitk_img: sitk.Image
+    target_shape: tuple of int
+
+    Returns
+    -------
+    sitk.Image
+    """
+    source_shape = np.array(sitk_img.GetSize())
+    target_shape = np.array(target_shape)[
+        ::-1
+    ]  # channel order is inverted between sitk images and numpy arrays
+    target_shape = np.where(target_shape < 0, source_shape, target_shape)
+
+    diff_h = (source_shape - target_shape) / 2
+    diff_h = np.where(diff_h < 0, 0, diff_h)
+
+    lowerCrop = np.ceil(diff_h).astype(int).tolist()
+    upperCrop = np.floor(diff_h).astype(int).tolist()
+
+    return sitk.Crop(sitk_img, lowerCrop, upperCrop)
+
+
+def center_pad(sitk_img: sitk.Image, target_shape: Tuple[int, int, int], value: float = 0) -> sitk.Image:
+    """
+    Center pad an SITK image to a target shape.
+
+    Note: channel order in the target shape corresponds to numpy channel
+    order and channels with negative target values will not be padded.
+
+    Parameters
+    ----------
+    sitk_img: sitk.Image
+    target_shape: tuple of int
+    value: float
+
+    Returns
+    -------
+    sitk.Image
+    """
+    source_shape = np.array(sitk_img.GetSize())
+    target_shape = np.array(target_shape)[
+        ::-1
+    ]  # channel order is reverted between sitk images and numpy arrays
+    target_shape = np.where(target_shape < 0, source_shape, target_shape)
+
+    diff_h = (target_shape - source_shape) / 2
+    diff_h = np.where(diff_h < 0, 0, diff_h)
+
+    lowerPad = np.ceil(diff_h).astype(int).tolist()
+    upperPad = np.floor(diff_h).astype(int).tolist()
+
+    return sitk.ConstantPad(sitk_img, lowerPad, upperPad, value)
+
+
+def pad_crop(sitk_img: sitk.Image, target_shape: Tuple[int, int, int], value: float = 0) -> sitk.Image:
+    """
+    First `center_pad` and then `center_crop` a SITK image to a target
+    shape.
+
+    Note: channel order in the target shape corresponds to numpy channel
+    order and channels with negative target values will not be padded.
+
+    Parameters
+    ----------
+    sitk_img: sitk.Image
+    target_shape: tuple of int
+    value: float
+        value used for padding
+
+    Returns
+    -------
+    sitk.Image
+    """
+    return center_crop(center_pad(sitk_img, target_shape, value), target_shape)
+
+
+def resample(sitk_img: sitk.Image, sitk_img_target: sitk.Image, interpolator: int = sitk.sitkLinear) -> sitk.Image:
+    """
+    Re-sample an image so that its spacing, origin, direction ans size match a target image.
+
+    Parameters
+    ----------
+    sitk_img: sitk.Image
+        image to be re-sampled
+    sitk_img_target: sitk.Image
+        the target image
+    interpolator: int, optional
+        the type of interpolation used for re-sampling, e.g. sitk.sitkLinear
+
+    Returns
+    -------
+    sitk.Image
+    """
+    return sitk.Resample(nrrd.header, nrrd_target.header, sitk.Transform(), interpolator)
+
 
 def get_empty_image(size: Tuple[int, int, int] = (128, 128, 128)) -> sitk.Image:
     """
@@ -76,6 +223,10 @@ def load_image(filename: str) -> sitk.Image:
         sitk_img = 1.0 * sitk_img / scale
     except RuntimeError:
         pass
+
+    sitk_img = change_spacing(sitk_img, target_spacing=(4.0, 4.0, 4.0))
+    sitk_img = square_pad(sitk_img)
+    sitk_img = pad_crop(sitk_img, target_shape=(96, 96, 96))
 
     return sitk_img
 
