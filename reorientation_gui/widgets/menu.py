@@ -70,13 +70,15 @@ class MenuFile(tk.Menu):
 
         row = rows.iloc[0]
 
+        center_phys = tuple(map(float, (row["center_x"], row["center_y"], row["center_z"])))
+        center = self.app_state.sitk_img_state.value.TransformPhysicalPointToIndex(center_phys)
         with self.app_state.reorientation_state as state:
             state.angle_state.x.value = float(row["angle_x"])
             state.angle_state.y.value = float(row["angle_y"])
             state.angle_state.z.value = float(row["angle_z"])
-            state.center_state.x.value = int(row["center_x"])
-            state.center_state.y.value = int(row["center_y"])
-            state.center_state.z.value = int(row["center_z"])
+            state.center_state.x.value = center[0]
+            state.center_state.y.value = center[1]
+            state.center_state.z.value = center[2]
 
     def open(self):
         """
@@ -91,17 +93,24 @@ class MenuFile(tk.Menu):
         if self.save_filename.get() == "":
             return
 
+        sitk_img = self.app_state.sitk_img_state.value
+        reorientation_state = self.app_state.reorientation_state
+
+        center = tuple(reorientation_state.center_state.values())
+        center_phys = sitk_img.TransformIndexToPhysicalPoint(center)
+
         _data = {}
         _data.update(
             [
                 (f"angle_{key}", state.value)
-                for key, state in self.app_state.reorientation_state.angle_state.dict().items()
+                for key, state in reorientation_state.angle_state.dict().items()
             ]
         )
         _data.update(
             [
-                (f"center_{key}", state.value)
-                for key, state in self.app_state.reorientation_state.center_state.dict().items()
+                ("center_x", center_phys[0]),
+                ("center_y", center_phys[1]),
+                ("center_z", center_phys[2]),
             ]
         )
         _data["filename"] = os.path.basename(self.app_state.filename_state.value)
