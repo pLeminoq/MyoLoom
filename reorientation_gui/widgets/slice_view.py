@@ -76,7 +76,11 @@ class SliceViewState(HigherState):
         """
         Select a slice to be displayed, apply a color map and resize the image.
         """
-        slice_view = view_state.value[slice_state.value]
+        try:
+            slice_view = view_state.value[slice_state.value]
+        except IndexError:
+            # return an empty image and hope that the index will be updated to a correct value
+            return ObjectState(np.zeros((128, 128, 3), np.uint8))
         slice_view = cv.applyColorMap(slice_view, cv.COLORMAP_INFERNO)
         slice_view = cv.cvtColor(slice_view, cv.COLOR_BGR2RGB)
         slice_view = cv.resize(slice_view, self.resolution_state.values())

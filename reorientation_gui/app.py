@@ -106,6 +106,7 @@ class App(tk.Tk):
         self.frame_result = tk.Frame(
             self, highlightthickness=1, highlightbackground="black"
         )
+
         self.hla = ResultView(
             self.frame_result,
             ResultViewState(
@@ -113,7 +114,7 @@ class App(tk.Tk):
                 axis_labels=AxisLabelState("Apex", "Septal", "Lateral", "Basis"),
                 slice_view_state=SliceViewState(
                     sitk_img_state=self.state.img_hla_state,
-                    slice_state=64,
+                    slice_state=0, # this will be set to the image center in the init of ResultViewState
                     resolution_state=self.state.resolution_state,
                     normalization_state=self.state.normalization_state,
                 ),
@@ -126,7 +127,7 @@ class App(tk.Tk):
                 axis_labels=AxisLabelState("Septal", "Anterior", "Inferior", "Lateral"),
                 slice_view_state=SliceViewState(
                     sitk_img_state=self.state.img_sa_state,
-                    slice_state=64,
+                    slice_state=0, # this will be set to the image center in the init of ResultViewState
                     resolution_state=self.state.resolution_state,
                     normalization_state=self.state.normalization_state,
                 ),
@@ -139,7 +140,7 @@ class App(tk.Tk):
                 axis_labels=AxisLabelState("Anterior", "Basis", "Apex", "Inferior"),
                 slice_view_state=SliceViewState(
                     sitk_img_state=self.state.img_vla_state,
-                    slice_state=64,
+                    slice_state=0, # this will be set to the image center in the init of ResultViewState
                     resolution_state=self.state.resolution_state,
                     normalization_state=self.state.normalization_state,
                 ),

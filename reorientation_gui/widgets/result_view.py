@@ -45,6 +45,13 @@ class ResultViewState(HigherState):
         self.axis_labels = axis_labels
         self.slice_view_state = slice_view_state
 
+        self.slice_view_state.slice_state.set(self.slice_view_state.sitk_img_state.value.GetSize()[0] // 2)
+        self.slice_view_state.sitk_img_state.on_change(
+            lambda sitk_img_state: self.slice_view_state.slice_state.set(
+                sitk_img_state.value.GetSize()[0] // 2
+            )
+        )
+
 
 class ResultView(tk.Frame):
 
