@@ -159,7 +159,7 @@ def resample(sitk_img: sitk.Image, sitk_img_target: sitk.Image, interpolator: in
     return sitk.Resample(nrrd.header, nrrd_target.header, sitk.Transform(), interpolator)
 
 
-def get_empty_image(size: Tuple[int, int, int] = (128, 128, 128)) -> sitk.Image:
+def get_empty_image(size: Tuple[int, int, int] = (96, 96, 96)) -> sitk.Image:
     """
     Create an empty SITK image.
 
