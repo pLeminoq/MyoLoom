@@ -223,6 +223,21 @@ def load_image(filename: str) -> sitk.Image:
         sitk_img = 1.0 * sitk_img / scale
     except RuntimeError:
         pass
+    
+    try:
+        """
+        This is a workaround for the GE Discovery NM530c. It produces DICOM images
+        that contain a value for `Slice Thickness` as well as `Spacing Between Slices`
+        and they are not the same.
+        In these cases the spacing is twice the thickness, which is wrong, but it is
+        used by SimpleITK. This code ensures that the thickness will be used instead.
+        """
+        _ = _sitk_img.GetMetaData("0018|0088") # test if `SpacingBetweenSlices` is available
+        slice_thickness = float(_sitk_img.GetMetaData("0018|0050"))
+
+        sitk_img.SetSpacing((*sitk_img.GetSpacing()[:2], slice_thickness))
+    except RuntimeError as e:
+        pass
 
     sitk_img = change_spacing(sitk_img, target_spacing=(4.0, 4.0, 4.0))
     sitk_img = square_pad(sitk_img)
