@@ -7,7 +7,7 @@ import os
 import tkinter as tk
 from tkinter import filedialog, ttk
 
-from reorientation_gui.state import AppState
+from ..state import AppState
 
 
 class FileSelection(tk.Frame):

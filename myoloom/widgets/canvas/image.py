@@ -6,7 +6,7 @@ from PIL import ImageTk
 from PIL import Image as PILImage
 import tkinter as tk
 
-from reorientation_gui.state import ObjectState
+from ...state import ObjectState
 
 
 class ImageState(ObjectState):

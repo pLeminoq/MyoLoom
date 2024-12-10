@@ -3,8 +3,8 @@ from typing import List, Tuple
 import SimpleITK as sitk
 import tkinter as tk
 
-from reorientation_gui.state import HigherState, SequenceState
-from reorientation_gui.widgets.slice_view import SliceView, SliceViewState
+from ..state import HigherState, SequenceState
+from .slice_view import SliceView, SliceViewState
 
 
 class AxisLabelState(SequenceState):

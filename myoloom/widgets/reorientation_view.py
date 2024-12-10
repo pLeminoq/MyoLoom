@@ -9,15 +9,15 @@ import numpy as np
 from PIL import Image, ImageTk
 import tkinter as tk
 
-from reorientation_gui.state import (
+from ..state import (
     PointState,
     HigherState,
     FloatState,
     BoolState,
     StringState,
 )
-from reorientation_gui.widgets.canvas import Line, LineState, Rectangle, RectangleState
-from reorientation_gui.widgets.slice_view import SliceView, SliceViewState
+from .canvas import Line, LineState, Rectangle, RectangleState
+from .slice_view import SliceView, SliceViewState
 
 
 def cart2pol(x: int, y: int) -> Tuple[float, float]:

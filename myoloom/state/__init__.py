@@ -2,8 +2,8 @@
 States enable a reactive implementation of widgets.
 """
 
-from reorientation_gui.state.app import AppState
-from reorientation_gui.state.lib import (
+from .app import AppState
+from .lib import (
     computed_state,
     FloatState,
     IntState,
@@ -13,13 +13,13 @@ from reorientation_gui.state.lib import (
     HigherState,
     SequenceState,
 )
-from reorientation_gui.state.reorientation import (
+from .reorientation import (
     AngleState,
     CenterState,
     ReorientationState,
 )
-from reorientation_gui.state.resolution import ResolutionState
-from reorientation_gui.state.point import PointState
+from .resolution import ResolutionState
+from .point import PointState
 
 __all__ = [
     "computed_state",

@@ -9,8 +9,6 @@ import numpy as np
 from PIL import Image, ImageTk
 import SimpleITK as sitk
 
-from reorientation_gui.state.reorientation import ReorientationState
-
 def change_spacing(
     sitk_img: sitk.Image,
     target_spacing: Tuple[float, float, float],

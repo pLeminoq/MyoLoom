@@ -1,5 +1,5 @@
-from reorientation_gui.widgets.canvas.image import Image, ImageState
-from reorientation_gui.widgets.canvas.line import Line, LineState
-from reorientation_gui.widgets.canvas.rectangle import Rectangle, RectangleState
+from .image import Image, ImageState
+from .line import Line, LineState
+from .rectangle import Rectangle, RectangleState
 
 __all__ = ["Image", "ImageState", "Line", "LineState", "Rectangle", "RectangleState"]

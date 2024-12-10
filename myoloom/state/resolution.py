@@ -1,4 +1,4 @@
-from reorientation_gui.state.lib import SequenceState, IntState
+from .lib import SequenceState, IntState
 
 
 class ResolutionState(SequenceState):

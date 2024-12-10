@@ -8,8 +8,8 @@ import pandas as pd
 import tkinter as tk
 from tkinter import filedialog
 
-from reorientation_gui.state import AppState
-from reorientation_gui.widgets.file_dialog import FileDialog
+from ..state import AppState
+from .file_dialog import FileDialog
 
 
 class MenuFile(tk.Menu):

@@ -5,11 +5,11 @@ import numpy as np
 import tkinter as tk
 import SimpleITK as sitk
 
-from reorientation_gui.widgets.canvas.image import Image, ImageState
-from reorientation_gui.widgets.scale import Scale, ScaleState
-from reorientation_gui.util import normalize_image
+from .canvas.image import Image, ImageState
+from .scale import Scale, ScaleState
+from ..util import normalize_image
 
-from reorientation_gui.state import (
+from ..state import (
     HigherState,
     ObjectState,
     IntState,

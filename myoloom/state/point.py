@@ -1,4 +1,4 @@
-from reorientation_gui.state.lib import IntState, SequenceState
+from .lib import IntState, SequenceState
 
 
 class PointState(SequenceState):

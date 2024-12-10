@@ -2,7 +2,7 @@ from typing import Optional
 
 import tkinter as tk
 
-from reorientation_gui.state import PointState, HigherState, IntState, StringState
+from ...state import PointState, HigherState, IntState, StringState
 
 
 class RectangleState(HigherState):

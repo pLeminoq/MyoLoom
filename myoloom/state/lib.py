@@ -3,7 +3,6 @@ Implementation of states.
 """
 
 from typing import Any, Callable, List, Optional
-from typing_extensions import Self
 
 
 class State(object):
@@ -17,10 +16,10 @@ class State(object):
     """
 
     def __init__(self):
-        self._callbacks: List[Callable[[Self], None]] = []
+        self._callbacks: List[Callable[[None], None]] = []
         self._active = True
 
-    def on_change(self, callback: Callable[[Self], None]):
+    def on_change(self, callback: Callable[[None], None]):
         """
         Register a callback on this state.
 
@@ -114,7 +113,7 @@ class BasicState(State):
 
     def create_transformed_state(
         self, self_to_other: Callable[[Any], Any], other_to_self: Callable[[Any], Any]
-    ) -> Self:
+    ) -> None:
         """
         Create a transformed basic state.
 

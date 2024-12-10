@@ -3,8 +3,8 @@ import SimpleITK as sitk
 import tkinter as tk
 from tkinter import ttk
 
-from reorientation_gui.state import *
-from reorientation_gui.widgets import *
+from .state import *
+from .widgets import *
 
 
 class App(tk.Tk):

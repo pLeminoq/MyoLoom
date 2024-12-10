@@ -4,7 +4,7 @@ import time
 import numpy as np
 import SimpleITK as sitk
 
-from reorientation_gui.state.lib import SequenceState, HigherState, FloatState, IntState
+from .lib import SequenceState, HigherState, FloatState, IntState
 
 
 class AngleState(SequenceState):

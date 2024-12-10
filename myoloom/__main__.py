@@ -1,8 +1,8 @@
 import argparse
 
-from reorientation_gui.app import App
-from reorientation_gui.state import AppState
-from reorientation_gui.widgets.file_dialog import FileDialog
+from .app import App
+from .state import AppState
+from .widgets.file_dialog import FileDialog
 
 parser = argparse.ArgumentParser(
     description="GUI for the reorientation of myocardial perfusion SPECT images.",

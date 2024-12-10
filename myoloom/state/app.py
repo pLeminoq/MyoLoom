@@ -1,7 +1,8 @@
 import numpy as np
 import SimpleITK as sitk
 
-from reorientation_gui.state.lib import (
+from ..util import load_image, square_pad, get_empty_image
+from .lib import (
     computed_state,
     FloatState,
     HigherState,
@@ -9,13 +10,12 @@ from reorientation_gui.state.lib import (
     ObjectState,
     StringState,
 )
-from reorientation_gui.state.reorientation import (
+from .reorientation import (
     AngleState,
     CenterState,
     ReorientationState,
 )
-from reorientation_gui.state.resolution import ResolutionState
-from reorientation_gui.util import load_image, square_pad, get_empty_image
+from .resolution import ResolutionState
 
 
 class AppState(HigherState):

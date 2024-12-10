@@ -3,7 +3,7 @@ from typing import Callable, Tuple, Union
 import tkinter as tk
 from tkinter import ttk
 
-from reorientation_gui.state import IntState, FloatState, HigherState
+from ..state import IntState, FloatState, HigherState
 
 Number = Union[int, float]
 NumberState = Union[IntState, FloatState]
