@@ -64,7 +64,7 @@ class FileDialog(tk.Toplevel):
         self.file_selection = FileSelection(
             self.frame,
             label="Image",
-            init_filename=app_state.filename_state.value,
+            init_filename=app_state.filename.value,
         )
         self.button = ttk.Button(self.frame, text="Confirm", command=self.on_confirm)
 
@@ -96,7 +96,7 @@ class FileDialog(tk.Toplevel):
         if not self.selection_is_valid():
             return
 
-        self.app_state.filename_state.value = self.file_selection.filename.get()
+        self.app_state.filename.value = self.file_selection.filename.get()
 
         # remove the dialog after confirmation
         self.destroy()

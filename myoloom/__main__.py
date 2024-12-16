@@ -2,7 +2,7 @@ import argparse
 
 from .app import App
 from .state import AppState
-from .widgets.file_dialog import FileDialog
+from .widget.file_dialog import FileDialog
 
 parser = argparse.ArgumentParser(
     description="GUI for the reorientation of myocardial perfusion SPECT images.",
@@ -17,7 +17,7 @@ args = parser.parse_args()
 app_state = AppState()
 # set initial file from args
 if args.file is not None:
-    app_state.filename_state.value = args.file
+    app_state.filename.value = args.file
 
 # start the app
 app = App(app_state)

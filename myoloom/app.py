@@ -1,10 +1,20 @@
-import numpy as np
-import SimpleITK as sitk
 import tkinter as tk
 from tkinter import ttk
 
+import cv2 as cv
+import numpy as np
+import SimpleITK as sitk
+
+from reacTk.state import PointState
+from reacTk.util import get_active_monitor
+from reacTk.widget.canvas.rectangle import RectangleStyle
+
 from .state import *
-from .widgets import *
+from .widget.menu import MenuBar
+from .widget.reorientation_view import ReorientationView, ReorientationViewState
+from .widget.result_view import ResultView, ResultViewState, AxisLabelState
+from .widget.scale import Scale, ScaleState
+from .widget.slice_view import SliceViewState
 
 
 class App(tk.Tk):
@@ -23,55 +33,52 @@ class App(tk.Tk):
         self.title("MPI SPECT Reorientation")
         self.state = state
 
-        display_resolution = (self.winfo_screenheight() - 350) // 2
-        self.state.resolution_state.set(display_resolution, display_resolution)
-        self.state.rectangle_size_state.value = round(display_resolution * 0.02)
+        monitor = get_active_monitor(self.winfo_geometry())
 
-        _scale = display_resolution / self.state.sitk_img_state.value.GetSize()[0]
-        _to_image_scale = lambda value: round(value / _scale)
-        _to_display_scale = lambda value: round(value * _scale)
+        slice_view_resolution = (monitor.height - 350) // 2
+        print(f"{slice_view_resolution=}")
+
+        # display_resolution = (self.winfo_screenheight() - 350) // 2
+        # self.state.resolution_state.set(display_resolution, display_resolution)
+        # self.state.rectangle_size_state.value = round(display_resolution * 0.02)
+
+        # _scale = display_resolution / self.state.sitk_img_state.value.GetSize()[0]
+        # _to_image_scale = lambda value: round(value / _scale)
+        # _to_display_scale = lambda value: round(value * _scale)
 
         self.menu_bar = MenuBar(self, self.state)
 
         self.normalization_scale = Scale(
             self,
             state=ScaleState(
-                number_state=self.state.normalization_state,
-                value_range=(1.0, 0.0),
-                length=round(1.5 * display_resolution),
+                value=self.state.clip_percentage,
+                min_value=0.0,
+                max_value=1.0,
+                length=round(1.5 * slice_view_resolution),
                 orientation=tk.VERTICAL,
-                formatter=lambda x: f"{str(round(100 * x)):>3}%",
+                formatter="{:.0%}",
             ),
         )
 
-        self.frame_reorie = tk.Frame(
-            self, highlightthickness=1, highlightbackground="black"
-        )
+        self.frame_reorie = ttk.Frame(self)
         self.view_trans = ReorientationView(
             self.frame_reorie,
             ReorientationViewState(
                 slice_view_state=SliceViewState(
-                    sitk_img_state=self.state.sitk_img_state,
-                    slice_state=self.state.reorientation_state.center_state.z,
-                    resolution_state=self.state.resolution_state,
-                    normalization_state=self.state.normalization_state,
+                    sitk_img=self.state.sitk_img,
+                    slice=self.state.reorientation.center.z,  # TODO: this needs to depend on the current image/ should be initialized to its center
+                    clip_percentage=self.state.clip_percentage,
+                    colormap=cv.COLORMAP_INFERNO,
                 ),
-                rect_center_state=RectangleState(
-                    center_state=PointState(
-                        x=self.state.reorientation_state.center_state.x.create_transformed_state(
-                            _to_display_scale, _to_image_scale
-                        ),
-                        y=self.state.reorientation_state.center_state.y.create_transformed_state(
-                            _to_display_scale, _to_image_scale
-                        ),
-                    ),
-                    size_state=self.state.rectangle_size_state,
-                    color_state="green",
+                title="Transversal",
+                center=PointState(
+                    x=self.state.reorientation.center.x,
+                    y=self.state.reorientation.center.y,
                 ),
-                angle_state=self.state.reorientation_state.angle_state.z,
-                distance_state=30.0,
-                title_state="Transversal",
+                angle=self.state.reorientation.angle.z,
+                distance=30.0,  # TODO: depend on display resolution
                 start_angle=np.deg2rad(270),
+                rectangle_size=10,  # TODO
             ),
         )
 
@@ -79,44 +86,34 @@ class App(tk.Tk):
             self.frame_reorie,
             ReorientationViewState(
                 slice_view_state=SliceViewState(
-                    sitk_img_state=self.state.sitk_img_saggital_state,
-                    slice_state=self.state.reorientation_state.center_state.x,
-                    resolution_state=self.state.resolution_state,
-                    normalization_state=self.state.normalization_state,
+                    sitk_img=self.state.sitk_img_saggital,
+                    slice=self.state.reorientation.center.x,
+                    clip_percentage=self.state.clip_percentage,
+                    colormap=cv.COLORMAP_INFERNO,
                 ),
-                rect_center_state=RectangleState(
-                    center_state=PointState(
-                        x=self.state.reorientation_state.center_state.y.create_transformed_state(
-                            _to_display_scale, _to_image_scale
-                        ),
-                        y=self.state.reorientation_state.center_state.z.create_transformed_state(
-                            _to_display_scale, _to_image_scale
-                        ),
-                    ),
-                    size_state=self.state.rectangle_size_state,
-                    color_state="green",
+                title="Saggital",
+                center=PointState(
+                    x=self.state.reorientation.center.y,
+                    y=self.state.reorientation.center.z,
                 ),
-                angle_state=self.state.reorientation_state.angle_state.x,
-                distance_state=30.0,
-                title_state="Saggital",
+                angle=self.state.reorientation.angle.x,
+                distance=30.0,  # TODO: depend on display resolution
                 start_angle=np.deg2rad(180),
+                rectangle_size=10,  # TODO
             ),
         )
 
-        self.frame_result = tk.Frame(
-            self, highlightthickness=1, highlightbackground="black"
-        )
-
+        self.frame_result = ttk.Frame(self)
         self.hla = ResultView(
             self.frame_result,
             ResultViewState(
                 title="Horizontal Long Axis (HLA)",
                 axis_labels=AxisLabelState("Apex", "Septal", "Lateral", "Basis"),
                 slice_view_state=SliceViewState(
-                    sitk_img_state=self.state.img_hla_state,
-                    slice_state=0, # this will be set to the image center in the init of ResultViewState
-                    resolution_state=self.state.resolution_state,
-                    normalization_state=self.state.normalization_state,
+                    sitk_img=self.state.img_reoriented,
+                    slice=46,  # TODO: this will be set to the image center in the init of ResultViewState
+                    clip_percentage=self.state.clip_percentage,
+                    colormap=cv.COLORMAP_INFERNO,
                 ),
             ),
         )
@@ -126,10 +123,10 @@ class App(tk.Tk):
                 title="Short Axis (SA)",
                 axis_labels=AxisLabelState("Septal", "Anterior", "Inferior", "Lateral"),
                 slice_view_state=SliceViewState(
-                    sitk_img_state=self.state.img_sa_state,
-                    slice_state=0, # this will be set to the image center in the init of ResultViewState
-                    resolution_state=self.state.resolution_state,
-                    normalization_state=self.state.normalization_state,
+                    sitk_img=self.state.img_sa,
+                    slice=46,  # TODO: this will be set to the image center in the init of ResultViewState
+                    clip_percentage=self.state.clip_percentage,
+                    colormap=cv.COLORMAP_INFERNO,
                 ),
             ),
         )
@@ -139,22 +136,36 @@ class App(tk.Tk):
                 title="Vertical Long Axis (VLA)",
                 axis_labels=AxisLabelState("Anterior", "Basis", "Apex", "Inferior"),
                 slice_view_state=SliceViewState(
-                    sitk_img_state=self.state.img_vla_state,
-                    slice_state=0, # this will be set to the image center in the init of ResultViewState
-                    resolution_state=self.state.resolution_state,
-                    normalization_state=self.state.normalization_state,
+                    sitk_img=self.state.img_vla,
+                    slice=46,  # TODO: this will be set to the image center in the init of ResultViewState
+                    clip_percentage=self.state.clip_percentage,
+                    colormap=cv.COLORMAP_INFERNO,
                 ),
             ),
         )
 
-        self.view_trans.grid(column=0, row=0, padx=20, pady=5)
-        self.view_sagittal.grid(column=0, row=1, padx=20, pady=5)
-        self.frame_reorie.grid(column=0, row=0, rowspan=2, padx=5, pady=5)
+        self.view_trans.grid(column=0, row=0, padx=20, pady=5, sticky="nswe")
+        self.view_sagittal.grid(column=0, row=1, padx=20, pady=5, sticky="nswe")
+        self.frame_reorie.rowconfigure(0, weight=1, minsize=slice_view_resolution)
+        self.frame_reorie.rowconfigure(1, weight=1, minsize=slice_view_resolution)
+        self.frame_reorie.grid(
+            column=0, row=0, rowspan=2, padx=5, pady=5, sticky="nswe"
+        )
 
-        self.hla.grid(column=0, row=0, padx=(20, 5), pady=5)
-        self.sa.grid(column=0, row=1, padx=(20, 5), pady=5)
-        self.vla.grid(column=1, row=1, padx=(5, 20), pady=5)
-        self.frame_result.grid(column=1, row=0, rowspan=2, padx=5, pady=5)
+        self.rowconfigure(0, weight=1, minsize=slice_view_resolution)
+        self.rowconfigure(1, weight=1, minsize=slice_view_resolution)
+        self.columnconfigure(0, weight=5, minsize=slice_view_resolution)
+        self.columnconfigure(1, weight=5, minsize=slice_view_resolution)
+        self.columnconfigure(2, weight=1)
+
+        self.hla.grid(column=0, row=0, padx=(20, 5), pady=5, sticky="nswe")
+        self.sa.grid(column=0, row=1, padx=(20, 5), pady=5, sticky="nswe")
+        self.vla.grid(column=1, row=1, padx=(5, 20), pady=5, sticky="nswe")
+        self.frame_result.grid(column=1, row=0, rowspan=2, padx=5, pady=5, sticky="nswe")
+        self.frame_result.rowconfigure(0, weight=1, minsize=slice_view_resolution)
+        self.frame_result.rowconfigure(1, weight=1, minsize=slice_view_resolution)
+        self.frame_result.columnconfigure(0, weight=1, minsize=slice_view_resolution)
+        self.frame_result.columnconfigure(1, weight=1, minsize=slice_view_resolution)
 
         self.normalization_scale.grid(column=2, row=0, rowspan=2)
 

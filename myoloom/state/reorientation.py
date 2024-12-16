@@ -3,35 +3,47 @@ import time
 
 import numpy as np
 import SimpleITK as sitk
+from widget_state import DictState, FloatState, HigherOrderState, IntState
 
-from .lib import SequenceState, HigherState, FloatState, IntState
 
+class AngleState(DictState):
 
-class AngleState(SequenceState):
-
-    def __init__(self, x: FloatState = 0.0, y: FloatState = 0.0, z: FloatState = 0.0):
+    def __init__(
+        self,
+        x: float | FloatState = 0.0,
+        y: float | FloatState = 0.0,
+        z: float | FloatState = 0.0,
+    ):
         """
         State defining a rotation around the three axes.
         """
-        super().__init__(values=[x, y, z], labels=["x", "y", "z"])
+        super().__init__()
+
+        self.x = x if isinstance(x, float) else FloatState(x)
+        self.y = y if isinstance(y, float) else FloatState(y)
+        self.z = z if isinstance(z, float) else FloatState(z)
 
 
-class CenterState(SequenceState):
+class CenterState(DictState):
 
-    def __init__(self, x: IntState, y: IntState, z: IntState):
+    def __init__(self, x: int | IntState, y: int | IntState, z: int | IntState):
         """
         State defining a 3D translation.
         """
-        super().__init__(values=[x, y, z], labels=["x", "y", "z"])
+        super().__init__()
+
+        self.x = x if isinstance(x, int) else IntState(x)
+        self.y = y if isinstance(y, int) else IntState(y)
+        self.z = z if isinstance(z, int) else IntState(z)
 
 
-class ReorientationState(HigherState):
+class ReorientationState(HigherOrderState):
     """
     State keeping track of the reorientation (rotation and translation) parameters.
     """
 
-    def __init__(self, angle_state: AngleState, center_state: CenterState):
+    def __init__(self, angle: AngleState, center: CenterState):
         super().__init__()
 
-        self.angle_state = angle_state
-        self.center_state = center_state
+        self.angle = angle
+        self.center = center

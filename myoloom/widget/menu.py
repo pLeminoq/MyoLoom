@@ -59,7 +59,7 @@ class MenuFile(tk.Menu):
 
         data = pd.read_csv(filename)
 
-        image_filename = os.path.basename(self.app_state.filename_state.value)
+        image_filename = os.path.basename(self.app_state.filename.value)
         rows = data[data["filename"] == image_filename]
 
         if len(rows) == 0:
@@ -113,7 +113,7 @@ class MenuFile(tk.Menu):
                 ("center_z", center_phys[2]),
             ]
         )
-        _data["filename"] = os.path.basename(self.app_state.filename_state.value)
+        _data["filename"] = os.path.basename(self.app_state.filename.value)
 
         _dataframe = dict([(key, [value]) for key, value in _data.items()])
         _dataframe = pd.DataFrame(_dataframe)
