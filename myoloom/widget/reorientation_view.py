@@ -124,7 +124,6 @@ class ReorientationViewState(HigherOrderState):
         self.style_line = (
             style_line if style_line is not None else LineStyle(color="white")
         )
-        print(f" - Distance {self.distance}, {sitk_img.GetHeight()=}")
 
     @computed
     def pos_rect_angle_1(
