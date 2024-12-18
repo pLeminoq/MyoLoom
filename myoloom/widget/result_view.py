@@ -1,11 +1,13 @@
 import tkinter as tk
 from tkinter import ttk
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from reacTk.state import PointState
 from reacTk.widget.label import Label, LabelState
 from reacTk.widget.canvas.line import Line, LineData, LineState, LineStyle
-from widget_state import HigherOrderState, DictState
+from reacTk.widget.canvas.text import Text, TextData, TextState, TextStyle
+from widget_state import HigherOrderState, DictState, ListState, IntState, StringState
+from widget_state.util import compute
 
 from .slice_view import SliceView, SliceViewState
 
@@ -31,12 +33,23 @@ class ResultViewState(HigherOrderState):
         title: str,
         axis_labels: AxisLabelState,
         slice_view_state: SliceViewState,
+        line_style: Optional[LineStyle] = None,
+        text_color: Optional[StringState] = None,
+        text_offset: Optional[IntState] = None,
     ):
         super().__init__()
 
         self.title = title
         self.axis_labels = axis_labels
         self.slice_view_state = slice_view_state
+
+        self.line_style = (
+            line_style
+            if line_style is not None
+            else LineStyle(color="green", dash=ListState([IntState(8), IntState(5)]))
+        )
+        self.text_color = text_color if text_color is not None else StringState("white")
+        self.text_offset = text_offset if text_offset is not None else IntState(12)
 
 
 class ResultView(ttk.Frame):
@@ -57,10 +70,9 @@ class ResultView(ttk.Frame):
         self.rowconfigure(1, weight=9)
 
         canvas = self.slice_view.canvas
-        canvas.bind("<Button-1>", lambda _: canvas.focus_force())
+        image = self.slice_view.image
 
-        left = PointState(0, 0)
-        left.depends_on(
+        left = compute(
             [canvas._state, state.slice_view_state.sitk_img],
             lambda: PointState(
                 *self.slice_view.image.to_canvas(
@@ -68,9 +80,7 @@ class ResultView(ttk.Frame):
                 )
             ),
         )
-
-        right = PointState(0, 0)
-        right.depends_on(
+        right = compute(
             [canvas._state, state.slice_view_state.sitk_img],
             lambda: PointState(
                 *self.slice_view.image.to_canvas(
@@ -79,9 +89,7 @@ class ResultView(ttk.Frame):
                 )
             ),
         )
-
-        top = PointState(0, 0)
-        top.depends_on(
+        top = compute(
             [canvas._state, state.slice_view_state.sitk_img],
             lambda: PointState(
                 *self.slice_view.image.to_canvas(
@@ -89,9 +97,7 @@ class ResultView(ttk.Frame):
                 )
             ),
         )
-
-        bottom = PointState(0, 0)
-        bottom.depends_on(
+        bottom = compute(
             [canvas._state, state.slice_view_state.sitk_img],
             lambda: PointState(
                 *self.slice_view.image.to_canvas(
@@ -101,22 +107,66 @@ class ResultView(ttk.Frame):
             ),
         )
 
-        self.line_h = Line(
-            canvas, LineState(LineData(left, right), LineStyle(color="green"))
-        )
-        self.line_v = Line(
-            canvas, LineState(LineData(top, bottom), LineStyle(color="green"))
-        )
+        self.line_h = Line(canvas, LineState(LineData(left, right), state.line_style))
+        self.line_v = Line(canvas, LineState(LineData(top, bottom), state.line_style))
 
-        # w, h = state.slice_view_state.resolution_state.values()
-        # canvas.create_line((0, h // 2), (w, h // 2), fill="green", dash=(8, 5))
-        # canvas.create_line((w // 2, 0), (w // 2, h), fill="green", dash=(8, 5))
-        #
-        # canvas.create_text(w // 2, 10, fill="green", text=state.axis_labels.top.value)
-        # canvas.create_text(25, h // 2, fill="green", text=state.axis_labels.left.value)
-        # canvas.create_text(
-        #     w - 25, h // 2, fill="green", text=state.axis_labels.right.value
-        # )
-        # canvas.create_text(
-        #     w // 2, h - 10, fill="green", text=state.axis_labels.bottom.value
-        # )
+        self.text_left = Text(
+            canvas,
+            TextState(
+                data=TextData(
+                    text=state.axis_labels.left,
+                    position=compute(
+                        [left, state.text_offset],
+                        lambda: PointState(
+                            left.x.value + state.text_offset.value, left.y.value
+                        ),
+                    ),
+                ),
+                style=TextStyle(color=state.text_color, anchor="center", angle=90),
+            ),
+        )
+        self.text_right = Text(
+            canvas,
+            TextState(
+                data=TextData(
+                    text=state.axis_labels.right,
+                    position=compute(
+                        [right, state.text_offset],
+                        lambda: PointState(
+                            right.x.value - state.text_offset.value, right.y.value
+                        ),
+                    ),
+                ),
+                style=TextStyle(color=state.text_color, anchor="center", angle=90),
+            ),
+        )
+        self.text_top = Text(
+            canvas,
+            TextState(
+                data=TextData(
+                    text=state.axis_labels.top,
+                    position=compute(
+                        [top, state.text_offset],
+                        lambda: PointState(
+                            top.x.value, top.y.value + state.text_offset.value
+                        ),
+                    ),
+                ),
+                style=TextStyle(color=state.text_color, anchor="center"),
+            ),
+        )
+        self.text_bottom = Text(
+            canvas,
+            TextState(
+                data=TextData(
+                    text=state.axis_labels.bottom,
+                    position=compute(
+                        [bottom, state.text_offset],
+                        lambda: PointState(
+                            bottom.x.value, bottom.y.value - state.text_offset.value
+                        ),
+                    ),
+                ),
+                style=TextStyle(color=state.text_color, anchor="center"),
+            ),
+        )
