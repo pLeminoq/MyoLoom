@@ -38,7 +38,6 @@ class App(tk.Tk):
 
         monitor = get_active_monitor(self.winfo_geometry())
         slice_view_resolution = (monitor.height - 350) // 2
-        print(f"{slice_view_resolution=}")
 
         self.menu_bar = MenuBar(self, self.state)
 
