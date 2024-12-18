@@ -46,6 +46,8 @@ class Scale(ttk.Frame):
             variable=to_tk_var(state.value),
         )
 
+        state.value.on_change(lambda _: self.scale.focus())
+
         self.label_min = Label(self, LabelState(""))
         self.label_max = Label(self, LabelState(""))
         self.label_current = Label(self, LabelState(""))

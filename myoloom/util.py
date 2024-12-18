@@ -9,6 +9,7 @@ import numpy as np
 from PIL import Image, ImageTk
 import SimpleITK as sitk
 
+
 def change_spacing(
     sitk_img: sitk.Image,
     target_spacing: Tuple[float, float, float],
@@ -83,7 +84,9 @@ def center_crop(sitk_img: sitk.Image, target_shape: Tuple[int, int, int]) -> sit
     return sitk.Crop(sitk_img, lowerCrop, upperCrop)
 
 
-def center_pad(sitk_img: sitk.Image, target_shape: Tuple[int, int, int], value: float = 0) -> sitk.Image:
+def center_pad(
+    sitk_img: sitk.Image, target_shape: Tuple[int, int, int], value: float = 0
+) -> sitk.Image:
     """
     Center pad an SITK image to a target shape.
 
@@ -115,7 +118,9 @@ def center_pad(sitk_img: sitk.Image, target_shape: Tuple[int, int, int], value: 
     return sitk.ConstantPad(sitk_img, lowerPad, upperPad, value)
 
 
-def pad_crop(sitk_img: sitk.Image, target_shape: Tuple[int, int, int], value: float = 0) -> sitk.Image:
+def pad_crop(
+    sitk_img: sitk.Image, target_shape: Tuple[int, int, int], value: float = 0
+) -> sitk.Image:
     """
     First `center_pad` and then `center_crop` a SITK image to a target
     shape.
@@ -137,7 +142,11 @@ def pad_crop(sitk_img: sitk.Image, target_shape: Tuple[int, int, int], value: fl
     return center_crop(center_pad(sitk_img, target_shape, value), target_shape)
 
 
-def resample(sitk_img: sitk.Image, sitk_img_target: sitk.Image, interpolator: int = sitk.sitkLinear) -> sitk.Image:
+def resample(
+    sitk_img: sitk.Image,
+    sitk_img_target: sitk.Image,
+    interpolator: int = sitk.sitkLinear,
+) -> sitk.Image:
     """
     Re-sample an image so that its spacing, origin, direction ans size match a target image.
 
@@ -154,7 +163,9 @@ def resample(sitk_img: sitk.Image, sitk_img_target: sitk.Image, interpolator: in
     -------
     sitk.Image
     """
-    return sitk.Resample(nrrd.header, nrrd_target.header, sitk.Transform(), interpolator)
+    return sitk.Resample(
+        nrrd.header, nrrd_target.header, sitk.Transform(), interpolator
+    )
 
 
 def get_empty_image(size: Tuple[int, int, int] = (96, 96, 96)) -> sitk.Image:
@@ -173,7 +184,7 @@ def get_empty_image(size: Tuple[int, int, int] = (96, 96, 96)) -> sitk.Image:
     return sitk.Image(size, sitk.sitkFloat64)
 
 
-def load_image(filename: str) -> sitk.Image:
+def load_image(filename: str, target_range: float = 300) -> sitk.Image:
     """
     Load an SITK image from a filename.
 
@@ -186,6 +197,10 @@ def load_image(filename: str) -> sitk.Image:
     Parameters
     ----------
     filename: str
+    target_range: float
+        the space in mm the image should have in each dimension
+        default is 300mm as it is expected to find the heart within half this range
+        in the body
 
     Returns
     -------
@@ -221,7 +236,7 @@ def load_image(filename: str) -> sitk.Image:
         sitk_img = 1.0 * sitk_img / scale
     except RuntimeError:
         pass
-    
+
     try:
         """
         This is a workaround for the GE Discovery NM530c. It produces DICOM images
@@ -230,16 +245,20 @@ def load_image(filename: str) -> sitk.Image:
         In these cases the spacing is twice the thickness, which is wrong, but it is
         used by SimpleITK. This code ensures that the thickness will be used instead.
         """
-        _ = _sitk_img.GetMetaData("0018|0088") # test if `SpacingBetweenSlices` is available
+        _ = _sitk_img.GetMetaData(
+            "0018|0088"
+        )  # test if `SpacingBetweenSlices` is available
         slice_thickness = float(_sitk_img.GetMetaData("0018|0050"))
 
         sitk_img.SetSpacing((*sitk_img.GetSpacing()[:2], slice_thickness))
     except RuntimeError as e:
         pass
 
-    sitk_img = change_spacing(sitk_img, target_spacing=(4.0, 4.0, 4.0))
     sitk_img = square_pad(sitk_img)
-    sitk_img = pad_crop(sitk_img, target_shape=(96, 96, 96))
+    
+    target_shape = round(target_range / sitk_img.GetSpacing()[0])
+    target_shape = (target_shape,) * 3
+    sitk_img = pad_crop(sitk_img, target_shape=target_shape)
 
     return sitk_img
 
@@ -296,4 +315,3 @@ def normalize_image(img: np.array, clip: Optional[float] = None) -> np.array:
     img = (img - img.min()) / (img.max() - img.min())
     img = (255 * img).astype(np.uint8)
     return img
-

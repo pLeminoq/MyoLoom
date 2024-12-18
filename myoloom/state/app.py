@@ -10,6 +10,8 @@ from widget_state import (
     computed,
 )
 
+from reacTk.decorator import asynchron
+
 from ..widget.slice_view import SITKData
 from ..util import load_image, square_pad, get_empty_image
 from .reorientation import (
@@ -28,10 +30,11 @@ class AppState(HigherOrderState):
 
         self.filename = StringState("")
         self.clip_percentage = FloatState(1.0)
+        self.rectangle_size = IntState(8)
 
         self.reorientation = ReorientationState(
             angle=AngleState(0.0, 0.0, 0.0),
-            center=CenterState(0, 0, 0),
+            center=CenterState(0.0, 0.0, 0.0),
         )
 
         self.filename.on_change(lambda _: self.reset_reorientation())
@@ -43,9 +46,11 @@ class AppState(HigherOrderState):
         This is typically done when a new image is loaded
         """
         size = self.sitk_img.value.GetSize()
+        center = (size[0] / 2.0, size[1] / 2.0, size[2] / 2.0)
+        physical_center = self.sitk_img.value.TransformContinuousIndexToPhysicalPoint(center)
         with self.reorientation as state:
             state.angle.set(0.0, 0.0, 0.0)
-            state.center.set(size[0] // 2, size[1] // 2, size[2] // 2)
+            state.center.set(size[0] / 2.0, size[1] // 2.0, size[2] / 2.0)
 
     @computed
     def sitk_img(self, filename: StringState) -> SITKData:
@@ -77,6 +82,7 @@ class AppState(HigherOrderState):
 
         translation = sitk.TranslationTransform(3, offset)
         rotation = sitk.Euler3DTransform(center_image, *reorientation.angle.values())
+
         resampled = sitk.Resample(
             reoriented,
             reoriented,
@@ -84,17 +90,22 @@ class AppState(HigherOrderState):
             sitk.sitkLinear,
             0.0,
         )
-        print(f"Reorienting took {1000 * (time.time() - since):.2f}ms")
         return SITKData(resampled)
 
     @computed
     def img_sa(self, img_reoriented: SITKData) -> SITKData:
+        if img_reoriented.value is None:
+            return SITKData(get_empty_image())
+
         _img = img_reoriented.value[:]
         _img = sitk.PermuteAxes(_img, (2, 0, 1))
         return SITKData(_img)
 
     @computed
     def img_vla(self, img_reoriented: SITKData) -> SITKData:
+        if img_reoriented.value is None:
+            return SITKData(get_empty_image())
+
         _img = img_reoriented.value[:]
         _img = sitk.PermuteAxes(_img, (1, 2, 0))
         _img = sitk.Flip(_img, (True, True, False))

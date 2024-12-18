@@ -9,6 +9,9 @@ from reacTk.state import PointState
 from reacTk.util import get_active_monitor
 from reacTk.widget.canvas.rectangle import RectangleStyle
 
+from widget_state import IntState, FloatState
+from widget_state.util import compute
+
 from .state import *
 from .widget.menu import MenuBar
 from .widget.reorientation_view import ReorientationView, ReorientationViewState
@@ -34,17 +37,8 @@ class App(tk.Tk):
         self.state = state
 
         monitor = get_active_monitor(self.winfo_geometry())
-
         slice_view_resolution = (monitor.height - 350) // 2
         print(f"{slice_view_resolution=}")
-
-        # display_resolution = (self.winfo_screenheight() - 350) // 2
-        # self.state.resolution_state.set(display_resolution, display_resolution)
-        # self.state.rectangle_size_state.value = round(display_resolution * 0.02)
-
-        # _scale = display_resolution / self.state.sitk_img_state.value.GetSize()[0]
-        # _to_image_scale = lambda value: round(value / _scale)
-        # _to_display_scale = lambda value: round(value * _scale)
 
         self.menu_bar = MenuBar(self, self.state)
 
@@ -52,8 +46,8 @@ class App(tk.Tk):
             self,
             state=ScaleState(
                 value=self.state.clip_percentage,
-                min_value=0.0,
-                max_value=1.0,
+                min_value=1.0,
+                max_value=0.0,
                 length=round(1.5 * slice_view_resolution),
                 orientation=tk.VERTICAL,
                 formatter="{:.0%}",
@@ -66,7 +60,7 @@ class App(tk.Tk):
             ReorientationViewState(
                 slice_view_state=SliceViewState(
                     sitk_img=self.state.sitk_img,
-                    slice=self.state.reorientation.center.z,  # TODO: this needs to depend on the current image/ should be initialized to its center
+                    slice=self.state.reorientation.center.z.round(),
                     clip_percentage=self.state.clip_percentage,
                     colormap=cv.COLORMAP_INFERNO,
                 ),
@@ -76,9 +70,12 @@ class App(tk.Tk):
                     y=self.state.reorientation.center.y,
                 ),
                 angle=self.state.reorientation.angle.z,
-                distance=30.0,  # TODO: depend on display resolution
+                distance=compute(
+                    [state.sitk_img],
+                    lambda: FloatState(state.sitk_img.value.GetHeight() * 0.2),
+                ),
                 start_angle=np.deg2rad(270),
-                rectangle_size=10,  # TODO
+                rectangle_size=state.rectangle_size,
             ),
         )
 
@@ -87,7 +84,7 @@ class App(tk.Tk):
             ReorientationViewState(
                 slice_view_state=SliceViewState(
                     sitk_img=self.state.sitk_img_saggital,
-                    slice=self.state.reorientation.center.x,
+                    slice=self.state.reorientation.center.x.round(),
                     clip_percentage=self.state.clip_percentage,
                     colormap=cv.COLORMAP_INFERNO,
                 ),
@@ -97,9 +94,12 @@ class App(tk.Tk):
                     y=self.state.reorientation.center.z,
                 ),
                 angle=self.state.reorientation.angle.x,
-                distance=30.0,  # TODO: depend on display resolution
+                distance=compute(
+                    [state.sitk_img],
+                    lambda: FloatState(state.sitk_img.value.GetHeight() * 0.2),
+                ),
                 start_angle=np.deg2rad(180),
-                rectangle_size=10,  # TODO
+                rectangle_size=state.rectangle_size,
             ),
         )
 
@@ -111,7 +111,10 @@ class App(tk.Tk):
                 axis_labels=AxisLabelState("Apex", "Septal", "Lateral", "Basis"),
                 slice_view_state=SliceViewState(
                     sitk_img=self.state.img_reoriented,
-                    slice=46,  # TODO: this will be set to the image center in the init of ResultViewState
+                    slice=compute(
+                        [state.sitk_img],
+                        lambda: IntState(state.sitk_img.value.GetHeight() // 2),
+                    ),
                     clip_percentage=self.state.clip_percentage,
                     colormap=cv.COLORMAP_INFERNO,
                 ),
@@ -124,7 +127,10 @@ class App(tk.Tk):
                 axis_labels=AxisLabelState("Septal", "Anterior", "Inferior", "Lateral"),
                 slice_view_state=SliceViewState(
                     sitk_img=self.state.img_sa,
-                    slice=46,  # TODO: this will be set to the image center in the init of ResultViewState
+                    slice=compute(
+                        [state.sitk_img],
+                        lambda: IntState(state.sitk_img.value.GetHeight() // 2),
+                    ),
                     clip_percentage=self.state.clip_percentage,
                     colormap=cv.COLORMAP_INFERNO,
                 ),
@@ -137,17 +143,21 @@ class App(tk.Tk):
                 axis_labels=AxisLabelState("Anterior", "Basis", "Apex", "Inferior"),
                 slice_view_state=SliceViewState(
                     sitk_img=self.state.img_vla,
-                    slice=46,  # TODO: this will be set to the image center in the init of ResultViewState
+                    slice=compute(
+                        [state.sitk_img],
+                        lambda: IntState(state.sitk_img.value.GetHeight() // 2),
+                    ),
                     clip_percentage=self.state.clip_percentage,
                     colormap=cv.COLORMAP_INFERNO,
                 ),
             ),
         )
 
-        self.view_trans.grid(column=0, row=0, padx=20, pady=5, sticky="nswe")
-        self.view_sagittal.grid(column=0, row=1, padx=20, pady=5, sticky="nswe")
+        self.view_trans.grid(column=0, row=0, padx=(20, 5), pady=5, sticky="nswe")
+        self.view_sagittal.grid(column=0, row=1, padx=(20, 5), pady=5, sticky="nswe")
         self.frame_reorie.rowconfigure(0, weight=1, minsize=slice_view_resolution)
         self.frame_reorie.rowconfigure(1, weight=1, minsize=slice_view_resolution)
+        self.frame_reorie.columnconfigure(0, weight=1, minsize=slice_view_resolution)
         self.frame_reorie.grid(
             column=0, row=0, rowspan=2, padx=5, pady=5, sticky="nswe"
         )
@@ -161,7 +171,9 @@ class App(tk.Tk):
         self.hla.grid(column=0, row=0, padx=(20, 5), pady=5, sticky="nswe")
         self.sa.grid(column=0, row=1, padx=(20, 5), pady=5, sticky="nswe")
         self.vla.grid(column=1, row=1, padx=(5, 20), pady=5, sticky="nswe")
-        self.frame_result.grid(column=1, row=0, rowspan=2, padx=5, pady=5, sticky="nswe")
+        self.frame_result.grid(
+            column=1, row=0, rowspan=2, padx=5, pady=5, sticky="nswe"
+        )
         self.frame_result.rowconfigure(0, weight=1, minsize=slice_view_resolution)
         self.frame_result.rowconfigure(1, weight=1, minsize=slice_view_resolution)
         self.frame_result.columnconfigure(0, weight=1, minsize=slice_view_resolution)

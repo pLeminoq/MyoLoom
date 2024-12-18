@@ -47,9 +47,9 @@ class ResultView(ttk.Frame):
         self._state = state
 
         self.title = Label(self, state.title)
-        self.slice_view = SliceView(self, state.slice_view_state)
-
         self.title.grid(column=0, row=0)
+
+        self.slice_view = SliceView(self, state.slice_view_state)
         self.slice_view.grid(column=0, row=1, sticky="nswe")
 
         self.columnconfigure(0, weight=1)
@@ -57,6 +57,7 @@ class ResultView(ttk.Frame):
         self.rowconfigure(1, weight=9)
 
         canvas = self.slice_view.canvas
+        canvas.bind("<Button-1>", lambda _: canvas.focus_force())
 
         left = PointState(0, 0)
         left.depends_on(

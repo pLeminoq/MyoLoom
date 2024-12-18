@@ -26,15 +26,15 @@ class AngleState(DictState):
 
 class CenterState(DictState):
 
-    def __init__(self, x: int | IntState, y: int | IntState, z: int | IntState):
+    def __init__(self, x: float | FloatState, y: float | FloatState, z: float | FloatState):
         """
         State defining a 3D translation.
         """
         super().__init__()
 
-        self.x = x if isinstance(x, int) else IntState(x)
-        self.y = y if isinstance(y, int) else IntState(y)
-        self.z = z if isinstance(z, int) else IntState(z)
+        self.x = x if isinstance(x, float) else FloatState(x)
+        self.y = y if isinstance(y, float) else FloatState(y)
+        self.z = z if isinstance(z, float) else FloatState(z)
 
 
 class ReorientationState(HigherOrderState):
