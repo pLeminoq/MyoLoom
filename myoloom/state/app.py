@@ -110,3 +110,4 @@ class AppState(HigherOrderState):
         _img = sitk.PermuteAxes(_img, (1, 2, 0))
         _img = sitk.Flip(_img, (True, True, False))
         return SITKData(_img)
+

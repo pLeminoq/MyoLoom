@@ -168,7 +168,10 @@ def resample(
     )
 
 
-def get_empty_image(size: Tuple[int, int, int] = (96, 96, 96)) -> sitk.Image:
+def get_empty_image(
+    size: Tuple[int, int, int] = (96, 96, 96),
+    spacing: Tuple[float, float, float] = (4.0, 4.0, 4.0),
+) -> sitk.Image:
     """
     Create an empty SITK image.
 
@@ -181,7 +184,9 @@ def get_empty_image(size: Tuple[int, int, int] = (96, 96, 96)) -> sitk.Image:
     -------
     sitk.Image
     """
-    return sitk.Image(size, sitk.sitkFloat64)
+    sitk_img = sitk.Image(size, sitk.sitkFloat64)
+    sitk_img.SetSpacing(spacing)
+    return sitk_img
 
 
 def load_image(filename: str, target_range: float = 300) -> sitk.Image:
@@ -255,7 +260,7 @@ def load_image(filename: str, target_range: float = 300) -> sitk.Image:
         pass
 
     sitk_img = square_pad(sitk_img)
-    
+
     target_shape = round(target_range / sitk_img.GetSpacing()[0])
     target_shape = (target_shape,) * 3
     sitk_img = pad_crop(sitk_img, target_shape=target_shape)

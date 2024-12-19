@@ -2,6 +2,7 @@
 Components of the menu bar.
 """
 
+import json
 import os
 
 import pandas as pd
@@ -36,7 +37,14 @@ class MenuFile(tk.Menu):
         self.add_command(label="Open", command=self.open)
         self.add_command(label="Save", command=self.save)
         self.add_command(label="Save as", command=self.save_as)
-        self.add_command(label="Load Reorientation", command=self.load_reorientation)
+        self.add_command(label="Load", command=self.load)
+
+        self.add_command(
+            label="Export Reorientation", command=self.export_reorientation
+        )
+        self.add_command(
+            label="Import Reorientation", command=self.import_reorientation
+        )
 
         # create a variable for the filename to save as
         self.save_filename = tk.StringVar(value="")
@@ -70,8 +78,12 @@ class MenuFile(tk.Menu):
 
         row = rows.iloc[0]
 
-        center_phys = tuple(map(float, (row["center_x"], row["center_y"], row["center_z"])))
-        center = self.app_state.sitk_img_state.value.TransformPhysicalPointToIndex(center_phys)
+        center_phys = tuple(
+            map(float, (row["center_x"], row["center_y"], row["center_z"]))
+        )
+        center = self.app_state.sitk_img_state.value.TransformPhysicalPointToIndex(
+            center_phys
+        )
         with self.app_state.reorientation_state as state:
             state.angle_state.x.value = float(row["angle_x"])
             state.angle_state.y.value = float(row["angle_y"])
@@ -93,17 +105,32 @@ class MenuFile(tk.Menu):
         if self.save_filename.get() == "":
             return
 
-        sitk_img = self.app_state.sitk_img_state.value
-        reorientation_state = self.app_state.reorientation_state
+        with open(self.save_filename.get(), mode="w") as f:
+            json.dump(self.app_state.serialize(), f, indent=2)
 
-        center = tuple(reorientation_state.center_state.values())
-        center_phys = sitk_img.TransformIndexToPhysicalPoint(center)
+    def load(self):
+        filename = filedialog.askopenfile()
+
+        with open(filename, mode="r") as f:
+            self.app_state.deserialize(json.load(f))
+
+    def import_reorientation(self):
+        pass
+
+    def export_reorientation(self):
+        filename = filedialog.asksaveasfilename()
+
+        sitk_img = self.app_state.sitk_img.value
+        reorientation = self.app_state.reorientation
+
+        center = tuple(reorientation.center.values())
+        center_phys = sitk_img.TransformContinuousIndexToPhysicalPoint(center)
 
         _data = {}
         _data.update(
             [
                 (f"angle_{key}", state.value)
-                for key, state in reorientation_state.angle_state.dict().items()
+                for key, state in reorientation.angle.dict().items()
             ]
         )
         _data.update(
@@ -118,36 +145,8 @@ class MenuFile(tk.Menu):
         _dataframe = dict([(key, [value]) for key, value in _data.items()])
         _dataframe = pd.DataFrame(_dataframe)
 
-        if os.path.isfile(self.save_filename.get()):
-            data = pd.read_csv(self.save_filename.get())
-
-            if len(data[data["filename"] == _data["filename"]]) == 1:
-                data.loc[
-                    data["filename"] == _data["filename"],
-                    [
-                        "angle_x",
-                        "angle_y",
-                        "angle_z",
-                        "center_x",
-                        "center_y",
-                        "center_z",
-                    ],
-                ] = (
-                    _data["angle_x"],
-                    _data["angle_y"],
-                    _data["angle_z"],
-                    _data["center_x"],
-                    _data["center_y"],
-                    _data["center_z"],
-                )
-            else:
-                _data = dict([(key, [value]) for key, value in _data.items()])
-                data = pd.concat([data, _dataframe], ignore_index=True)
-        else:
-            data = _dataframe
-
-        data.sort_values(by="filename", inplace=True)
-        data.to_csv(self.save_filename.get(), index=False)
+        # data.sort_values(by="filename", inplace=True)
+        data.to_csv(filename, index=False)
 
     def save_as(self):
         """

@@ -20,7 +20,7 @@ from .widget.scale import Scale, ScaleState
 from .widget.slice_view import SliceViewState
 
 
-class App(tk.Tk):
+class App(ttk.Frame):
     """
     App for MPI SPECT reorientation.
 
@@ -30,23 +30,20 @@ class App(tk.Tk):
     Normalization of SPECT images can be configured with a slider.
     """
 
-    def __init__(self, state: AppState):
+    def __init__(self, parent: tk.Widget, state: AppState):
         super().__init__()
 
-        self.title("MPI SPECT Reorientation")
         self.state = state
 
         monitor = get_active_monitor(self.winfo_geometry())
         slice_view_resolution = (monitor.height - 350) // 2
-
-        self.menu_bar = MenuBar(self, self.state)
 
         self.normalization_scale = Scale(
             self,
             state=ScaleState(
                 value=self.state.clip_percentage,
                 min_value=1.0,
-                max_value=0.0,
+                max_value=0.01,
                 length=round(1.5 * slice_view_resolution),
                 orientation=tk.VERTICAL,
                 formatter="{:.0%}",
@@ -179,6 +176,3 @@ class App(tk.Tk):
         self.frame_result.columnconfigure(1, weight=1, minsize=slice_view_resolution)
 
         self.normalization_scale.grid(column=2, row=0, rowspan=2)
-
-        self.bind("<Key-q>", lambda event: exit(0))
-        ttk.Style().theme_use("clam")
