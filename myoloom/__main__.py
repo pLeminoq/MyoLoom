@@ -41,7 +41,7 @@ root.columnconfigure(0, weight=1)
 
 # open file dialog after startup if no file is specified
 if app_state.filename.value == "":
-    root.after(50, lambda *args: FileDialog(app_state).grab_set())
+    root.after(500, lambda *args: FileDialog(app_state).grab_set())
 
 style = ttk.Style()
 style.theme_use("clam")
@@ -62,7 +62,8 @@ polar_map_app.grid(sticky="nswe")
 
 notebook.add(app, text="Reorientation")
 notebook.add(polar_map_app, text="Polar Map")
-notebook.select(1)
+
+# root.after(0, lambda: notebook.select(1))
 
 def test(event):
     if event.widget.index(notebook.select()) == 1:
