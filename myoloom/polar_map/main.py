@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 
+import cv2 as cv
 import numpy as np
 from reacTk.widget.canvas.line import Line, LineData, LineState, LineStyle
 from reacTk.widget.canvas.image import Image, ImageData, ImageState, ImageStyle
@@ -11,6 +12,7 @@ from widget_state import compute, ListState, IntState, FloatState, StringState
 
 from .state import AppState
 from .segment import SEGMENTS, segment_mask, segment_center
+from ..widget.slice_view import SliceView, SliceViewState
 
 
 class App(ttk.Frame):
@@ -20,8 +22,19 @@ class App(ttk.Frame):
 
         self.state = state
 
-        self.canvas = Canvas(self, CanvasState())
-        self.canvas.grid(row=0, column=0, sticky="nswe")
+        # self.slice_view = SliceView(self, SliceViewState(sitk_img=state.image, colormap=cv.COLORMAP_INFERNO))
+        self.slice_view = SliceView(self, SliceViewState(sitk_img=state.image, colormap=cv.COLORMAP_INFERNO))
+        self.slice_view._state.sitk_img.on_change(lambda sitk_img: self.slice_view._state.slice.set(sitk_img.value.GetHeight() // 2))
+        self.slice_view.grid(row=0, column=0, sticky="nswe")
+        # self.canvas = Canvas(self, CanvasState())
+        # self.canvas.grid(row=0, column=0, sticky="nswe")
+        # self.image = Image(
+        #     self.canvas,
+        #     ImageState(
+        #         state.central_slice,
+        #         style=ImageStyle(fit="contain", background=True),
+        #     ),
+        # )
 
         self.canvas_2 = Canvas(self, CanvasState())
         self.canvas_2.grid(row=0, column=1, sticky="nswe")
@@ -30,13 +43,6 @@ class App(ttk.Frame):
         self.columnconfigure(1, weight=1)
         self.rowconfigure(0, weight=1)
 
-        self.image = Image(
-            self.canvas,
-            ImageState(
-                state.central_slice,
-                style=ImageStyle(fit="contain", background=True),
-            ),
-        )
         self.rad_line = self.horizontal_line(state.pos_rad, color="blue")
         self.cyl_line = self.horizontal_line(state.pos_cylindrical, color="green")
 
@@ -54,7 +60,7 @@ class App(ttk.Frame):
             score = np.average(state.radial_activities.value[mask])
 
             position = compute(
-                [self.act._state, self.canvas._state],
+                [self.act._state, self.canvas_2._state],
                 lambda segment=segment: PointState(
                     *self.act.to_canvas(
                         *segment_center(
@@ -99,32 +105,36 @@ class App(ttk.Frame):
     #     self.canvas.create_text(*center, text=_txt, anchor="center", font=("Arial", 18))
     #
 
-    # self.canvas_3 = Canvas(self, CanvasState())
-    # self.canvas_3.grid(row=1, column=0, columnspan=2)
-    # self.x = Image(
-    #     self.canvas_3, ImageState(state.activity_image, ImageStyle(fit="fill"))
-    # )
+        self.canvas_3 = Canvas(self, CanvasState())
+        self.canvas_3.grid(row=1, column=0, columnspan=2)
+        self.x = Image(
+            self.canvas_3, ImageState(state.activity_image, ImageStyle(fit="fill"))
+        )
 
     def horizontal_line(self, relative_position: FloatState, color: str) -> Line:
+        # canvas = self.canvas
+        # image = self.image
+        canvas = self.slice_view.canvas
+        image = self.slice_view.image
         start = compute(
-            [relative_position, self.image._state, self.canvas._state],
+            [relative_position, image._state, canvas._state],
             lambda: PointState(
-                *self.image.to_canvas(
-                    0, relative_position.value * self.image._state.data.value.shape[0]
+                *image.to_canvas(
+                    0, relative_position.value * image._state.data.value.shape[0]
                 )
             ),
         )
         end = compute(
-            [relative_position, self.image._state, self.canvas._state],
+            [relative_position, image._state, canvas._state],
             lambda: PointState(
-                *self.image.to_canvas(
-                    self.image._state.data.value.shape[1],
-                    relative_position.value * self.image._state.data.value.shape[0],
+                *image.to_canvas(
+                    image._state.data.value.shape[1],
+                    relative_position.value * image._state.data.value.shape[0],
                 )
             ),
         )
         line = Line(
-            self.canvas,
+            canvas,
             state=LineState(
                 data=LineData(start, end),
                 style=LineStyle(
@@ -135,7 +145,7 @@ class App(ttk.Frame):
         line.tag_bind(
             "<B1-Motion>",
             lambda ev, _: relative_position.set(
-                self.image.to_image_continuous(ev.x, ev.y)[1]
-                / self.image._state.data.value.shape[0]
+                image.to_image_continuous(ev.x, ev.y)[1]
+                / image._state.data.value.shape[0]
             ),
         )
