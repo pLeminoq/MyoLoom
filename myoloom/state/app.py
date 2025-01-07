@@ -47,7 +47,9 @@ class AppState(HigherOrderState):
         """
         size = self.sitk_img.value.GetSize()
         center = (size[0] / 2.0, size[1] / 2.0, size[2] / 2.0)
-        physical_center = self.sitk_img.value.TransformContinuousIndexToPhysicalPoint(center)
+        physical_center = self.sitk_img.value.TransformContinuousIndexToPhysicalPoint(
+            center
+        )
         with self.reorientation as state:
             state.angle.set(0.0, 0.0, 0.0)
             state.center.set(size[0] / 2.0, size[1] // 2.0, size[2] / 2.0)
@@ -110,4 +112,3 @@ class AppState(HigherOrderState):
         _img = sitk.PermuteAxes(_img, (1, 2, 0))
         _img = sitk.Flip(_img, (True, True, False))
         return SITKData(_img)
-

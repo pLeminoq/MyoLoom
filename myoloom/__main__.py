@@ -65,9 +65,11 @@ notebook.add(polar_map_app, text="Polar Map")
 
 # root.after(0, lambda: notebook.select(1))
 
+
 def test(event):
     if event.widget.index(notebook.select()) == 1:
         polar_map_state.input_image.set(app_state.img_reoriented.value)
+
 
 notebook.bind("<<NotebookTabChanged>>", test)
 

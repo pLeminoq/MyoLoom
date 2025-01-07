@@ -73,7 +73,6 @@ def pol2cart(pt: PointState) -> PointState[IntState]:
 
 
 class ReorientationViewState(HigherOrderState):
-
     def __init__(
         self,
         slice_view_state: SliceViewState,
@@ -151,7 +150,6 @@ class ReorientationViewState(HigherOrderState):
 
 
 class ReorientationView(ttk.Frame):
-
     def __init__(
         self,
         parent: tk.Widget,
@@ -233,30 +231,6 @@ class ReorientationView(ttk.Frame):
             ),
         )
 
-        # def test_focus(ev, rect):
-        #     print(f"Focus center rect {rect.id}...")
-        #     self.canvas.focus_set()
-        #     self.canvas.focus(rect.id)
-        #     # self.canvas.focus_force()
-        #
-        # def test_left(ev, rect):
-        #     print(f"Left key on center_rect {rect.x}")
-        #     # self.canvas.focus(rect.id)
-        #
-        # def move_center(x: int = 0, y: int = 0):
-        #     state.center.set(x=state.center.x.value + x)
-        #     state.center.set(y=state.center.y.value + y)
-        #     # I don't know why but without this the canvas losses focus
-        #     self.canvas.focus_set()
-        #
-        # self.canvas.bind("<Left>", lambda _: move_center(x=-1))
-        # self.canvas.bind("<Right>", lambda _: move_center(x=+1))
-        # self.canvas.bind("<Up>", lambda _: move_center(y=-1))
-        # self.canvas.bind("<Down>", lambda _: move_center(y=+1))
-        # self.canvas.bind("<Button-1>", lambda _: self.canvas.focus_set())
-        # self.rect_center.tag_bind("Button-1", lambda *_: self.canvas.focus_set())
-
-        # self.canvas.config(highlightthickness=3, highlightcolor="yellow")
         self.rect_center.tag_bind(
             "<B1-Motion>",
             lambda ev, rect: state.center.set(

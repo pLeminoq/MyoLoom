@@ -16,15 +16,20 @@ from ..widget.slice_view import SliceView, SliceViewState
 
 
 class App(ttk.Frame):
-
     def __init__(self, parent: tk.Widget, state: AppState):
         super().__init__()
 
         self.state = state
 
         # self.slice_view = SliceView(self, SliceViewState(sitk_img=state.image, colormap=cv.COLORMAP_INFERNO))
-        self.slice_view = SliceView(self, SliceViewState(sitk_img=state.image, colormap=cv.COLORMAP_INFERNO))
-        self.slice_view._state.sitk_img.on_change(lambda sitk_img: self.slice_view._state.slice.set(sitk_img.value.GetHeight() // 2))
+        self.slice_view = SliceView(
+            self, SliceViewState(sitk_img=state.image, colormap=cv.COLORMAP_INFERNO)
+        )
+        self.slice_view._state.sitk_img.on_change(
+            lambda sitk_img: self.slice_view._state.slice.set(
+                sitk_img.value.GetHeight() // 2
+            )
+        )
         self.slice_view.grid(row=0, column=0, sticky="nswe")
         # self.canvas = Canvas(self, CanvasState())
         # self.canvas.grid(row=0, column=0, sticky="nswe")
@@ -98,12 +103,12 @@ class App(ttk.Frame):
         #     self.canvas.create_text(*center, text=_txt, anchor="center", font=("Arial", 18))
         # self.canvas.create_text(256, 256, text="50", anchor="center", font=("Arial", 18))
 
-    #     _mask = segment_mask(self.activities, seg, self.azimuth_angles)
-    #     # _mask = segment_mask(self.activities, seg)
-    #     _mean = np.average(self.activities[_mask])
-    #     _txt = f"{round(100 * _mean)}"
-    #     self.canvas.create_text(*center, text=_txt, anchor="center", font=("Arial", 18))
-    #
+        #     _mask = segment_mask(self.activities, seg, self.azimuth_angles)
+        #     # _mask = segment_mask(self.activities, seg)
+        #     _mean = np.average(self.activities[_mask])
+        #     _txt = f"{round(100 * _mean)}"
+        #     self.canvas.create_text(*center, text=_txt, anchor="center", font=("Arial", 18))
+        #
 
         self.canvas_3 = Canvas(self, CanvasState())
         self.canvas_3.grid(row=1, column=0, columnspan=2)

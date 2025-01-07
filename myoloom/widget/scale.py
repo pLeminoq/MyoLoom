@@ -9,7 +9,6 @@ from widget_state import IntState, FloatState, DictState, StringState
 
 
 class ScaleState(DictState):
-
     def __init__(
         self,
         value: FloatState,
@@ -33,7 +32,6 @@ class ScaleState(DictState):
 
 @stateful
 class Scale(ttk.Frame):
-
     def __init__(self, parent: tk.Widget, state: ScaleState):
         super().__init__(parent)
 

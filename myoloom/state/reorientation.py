@@ -7,7 +7,6 @@ from widget_state import DictState, FloatState, HigherOrderState, IntState
 
 
 class AngleState(DictState):
-
     def __init__(
         self,
         x: float | FloatState = 0.0,
@@ -25,8 +24,9 @@ class AngleState(DictState):
 
 
 class CenterState(DictState):
-
-    def __init__(self, x: float | FloatState, y: float | FloatState, z: float | FloatState):
+    def __init__(
+        self, x: float | FloatState, y: float | FloatState, z: float | FloatState
+    ):
         """
         State defining a 3D translation.
         """

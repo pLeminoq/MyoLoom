@@ -13,7 +13,6 @@ from .slice_view import SliceView, SliceViewState
 
 
 class AxisLabelState(DictState):
-
     def __init__(self, top: str, left: str, right: str, bottom: str):
         """
         Define labels for the top, left, right, and bottom positions of the displayed image.
@@ -27,7 +26,6 @@ class AxisLabelState(DictState):
 
 
 class ResultViewState(HigherOrderState):
-
     def __init__(
         self,
         title: str,
@@ -53,7 +51,6 @@ class ResultViewState(HigherOrderState):
 
 
 class ResultView(ttk.Frame):
-
     def __init__(self, parent: tk.Widget, state: ResultViewState):
         super().__init__(parent)
 
