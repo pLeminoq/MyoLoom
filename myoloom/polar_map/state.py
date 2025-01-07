@@ -16,7 +16,6 @@ from .segment import SEGMENTS, segment_vertices
 
 
 class AppState(HigherOrderState):
-
     def __init__(self):
         super().__init__()
 
@@ -84,9 +83,12 @@ class AppState(HigherOrderState):
 
         since = time.time()
         polar_rep = scipy.ndimage.map_coordinates(img, grid, order=3)
+        # print(f" - Polar rep shape {polar_rep.shape}")
         polar_rep = polar_rep[: len(polar_angles) + n_cylindrical]
+        # print(f" - Polar rep shape after {polar_rep.shape} - {n_cylindrical=}, {cz=}")
 
         activities = np.max(polar_rep, axis=1)
+        # print(f" - Activites shape {polar_rep.shape}")
 
         activities_apex = activities[: len(polar_angles)]
         activities_other = activities[len(polar_angles) :]
@@ -100,13 +102,13 @@ class AppState(HigherOrderState):
 
         self.radial_activities.set(activities)
 
-    # @computed
-    # def activity_image(self, radial_activities: ImageData):
-    #     img = radial_activities.value
-    #     img = (255 * img).astype(np.uint8)
-    #     img = cv.applyColorMap(img, cv.COLORMAP_INFERNO)
-    #     img = cv.cvtColor(img, cv.COLOR_BGR2RGB)
-    #     return ImageData(img)
+    @computed
+    def activity_image(self, radial_activities: ImageData):
+        img = radial_activities.value
+        img = (255 * img).astype(np.uint8)
+        img = cv.applyColorMap(img, cv.COLORMAP_INFERNO)
+        img = cv.cvtColor(img, cv.COLOR_BGR2RGB)
+        return ImageData(img)
 
     @computed
     def polar_map(self, radial_activities: ImageData):
@@ -133,7 +135,7 @@ def draw_segments_grid(polar_map):
     because it supports anti aliasing which looks a lot better
     """
     cy, cx = np.array(polar_map.shape[:2]) // 2
-    for radius in np.array([0.25, 0.5, 0.75, 1.0]) * polar_map.shape[0] // 2:
+    for radius in np.array([0.25, 0.5, 0.75]) * polar_map.shape[0] // 2:
         polar_map = cv.circle(
             polar_map,
             (cx, cy),
@@ -142,6 +144,16 @@ def draw_segments_grid(polar_map):
             thickness=1,
             lineType=cv.LINE_AA,
         )
+    # draw the outermost circle a pixel closer to cover
+    # aliasing artifacts
+    polar_map = cv.circle(
+        polar_map,
+        (cx, cy),
+        radius=polar_map.shape[0] // 2 - 1,
+        color=(0, 0, 0),
+        thickness=1,
+        lineType=cv.LINE_AA,
+    )
 
     for segment in SEGMENTS[:-1]:
         vertices = segment_vertices(segment, polar_map.shape[0] // 2)
