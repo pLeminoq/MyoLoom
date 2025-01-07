@@ -1,5 +1,8 @@
-numpy==1.26.4
-opencv-python==4.9.0.80
+numpy==2.2.0
+opencv-python==4.10.0.84
 pandas==2.2.2
-pillow==10.3.0
+pillow==11.0.0
+reacTk==0.0.4
+scipy==1.14.1
 SimpleITK==2.3.1
+widget_state==0.0.6
