@@ -59,39 +59,6 @@ class MenuFile(tk.Menu):
             ),
         )
 
-    def load_reorientation(self):
-        """
-        Query the user to open a CSV-file to restore the reorientation parameters.
-        """
-        filename = filedialog.askopenfilename()
-
-        data = pd.read_csv(filename)
-
-        image_filename = os.path.basename(self.app_state.filename.value)
-        rows = data[data["filename"] == image_filename]
-
-        if len(rows) == 0:
-            print(
-                f"Could not find reorientation for image {image_filename} in {filename}"
-            )
-            return
-
-        row = rows.iloc[0]
-
-        center_phys = tuple(
-            map(float, (row["center_x"], row["center_y"], row["center_z"]))
-        )
-        center = self.app_state.sitk_img_state.value.TransformPhysicalPointToIndex(
-            center_phys
-        )
-        with self.app_state.reorientation_state as state:
-            state.angle_state.x.value = float(row["angle_x"])
-            state.angle_state.y.value = float(row["angle_y"])
-            state.angle_state.z.value = float(row["angle_z"])
-            state.center_state.x.value = center[0]
-            state.center_state.y.value = center[1]
-            state.center_state.z.value = center[2]
-
     def open(self):
         """
         Open a new image with a user dialog.
@@ -115,6 +82,35 @@ class MenuFile(tk.Menu):
             self.app_state.deserialize(json.load(f))
 
     def import_reorientation(self):
+        """
+        Query the user to open a CSV-file to restore the reorientation parameters.
+        """
+        import os
+
+        filename = filedialog.askopenfilename(initialdir=os.getcwd())
+
+        data = pd.read_csv(filename)
+        if len(data) == 0:
+            print(
+                f"Could not find reorientation for image {image_filename} in {filename}"
+            )
+            return
+
+        row = data.iloc[0]
+
+        center_phys = tuple(
+            map(float, (row["center_x"], row["center_y"], row["center_z"]))
+        )
+        center = self.app_state.sitk_img.value.TransformPhysicalPointToContinuousIndex(
+            center_phys
+        )
+        with self.app_state.reorientation as state:
+            state.angle.x.value = float(row["angle_x"])
+            state.angle.y.value = float(row["angle_y"])
+            state.angle.z.value = float(row["angle_z"])
+            state.center.x.value = center[0]
+            state.center.y.value = center[1]
+            state.center.z.value = center[2]
         pass
 
     def export_reorientation(self):
@@ -146,7 +142,7 @@ class MenuFile(tk.Menu):
         _dataframe = pd.DataFrame(_dataframe)
 
         # data.sort_values(by="filename", inplace=True)
-        data.to_csv(filename, index=False)
+        _dataframe.to_csv(filename, index=False)
 
     def save_as(self):
         """
