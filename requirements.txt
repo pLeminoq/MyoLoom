@@ -2,6 +2,7 @@ numpy==2.2.0
 opencv-python==4.10.0.84
 pandas==2.2.2
 pillow==11.0.0
+pydicom==3.0.1
 reacTk==0.0.4
 scipy==1.14.1
 SimpleITK==2.3.1
