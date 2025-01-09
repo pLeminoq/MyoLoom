@@ -7,6 +7,7 @@ from typing import Optional, Tuple
 
 import numpy as np
 from PIL import Image, ImageTk
+import pydicom
 import SimpleITK as sitk
 
 
@@ -320,3 +321,11 @@ def normalize_image(img: np.array, clip: Optional[float] = None) -> np.array:
     img = (img - img.min()) / (img.max() - img.min())
     img = (255 * img).astype(np.uint8)
     return img
+
+
+def is_short_axis(filename: str) -> bool:
+    dcm = pydicom.dcmread(filename, stop_before_pixels=True)
+    view_code = dcm.DetectorInformationSequence[0].ViewCodeSequence[0]
+    return (
+        view_code.CodingSchemeDesignator == "SNM3" and view_code.CodeValue == "G-A186"
+    )
