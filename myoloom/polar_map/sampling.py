@@ -8,6 +8,8 @@ def polar_grid(
     azimuth_angles: NDArray,
     polar_angles: NDArray,
     center_z: int = None,
+    n_septal: int = None,
+    n_lateral: int = None,
 ) -> tuple[NDArray, NDArray, NDArray]:
     """
     Create a polar sampling grid.
@@ -49,9 +51,15 @@ def polar_grid(
     _center_z, center_y, center_x = np.array(image.shape) // 2
     center_z = center_z if center_z is not None else _center_z
 
+    # Note: we subtract 0.5 * pi so that sampling 12:00 instead of 3:00
+    azimuth_angles = np.mod(azimuth_angles - np.deg2rad(90), np.deg2rad(360))
+
+    n_lateral = image.shape[0] - center_z if n_lateral is None else n_lateral
+    n_septal = n_lateral if n_septal is None else n_septal
+
     # compute result grid shape
     grid_shape = (
-        len(polar_angles) + image.shape[0] - center_z,
+        len(polar_angles) + n_lateral,
         len(radii),
         len(azimuth_angles),
     )
@@ -76,12 +84,18 @@ def polar_grid(
         grid_x[k] = center_x + (polar_grid_x * np.sin(polar_angle))
         grid_y[k] = center_y + (polar_grid_y * np.sin(polar_angle))
 
+    # TODO: comment/describe
+    w_min = (n_septal - 1) / (n_lateral - 1)
+    w_max = 1.0
+    z_weights = np.abs(np.deg2rad(180) - azimuth_angles) / np.deg2rad(180)
+    z_weights = z_weights * (w_max - w_min) + w_min
+
     # update cylindrical part of x- and y-grid
     for k in range(len(polar_angles), grid_shape[0]):
         grid_x[k] = center_x + polar_grid_x
         grid_y[k] = center_y + polar_grid_y
         # in cylindrical domain, the z grid just points to the slice
-        grid_z[k] = center_z + (k - len(polar_angles))
+        grid_z[k] = center_z + (k - len(polar_angles)) * z_weights
 
     return (grid_z, grid_y, grid_x)
 
@@ -123,8 +137,8 @@ def cartesian_grid(
     grid_y = max_radius * radii / center  # normalize to input image range
 
     angles = -np.arctan2(ys, xs)
-    grid_x = (
-        max_angle * (angles + np.pi) / (2.0 * np.pi)
-    )  # normalize to input image range
+    angles = np.pi + angles  # move from [-pi, pi] to [0, 2*pi]
+    # angles = np.mod(angles - 0.5 * np.pi, 2.0 * np.pi)
+    grid_x = max_angle * angles / (2.0 * np.pi)  # normalize to input image range
 
     return (grid_y, grid_x)

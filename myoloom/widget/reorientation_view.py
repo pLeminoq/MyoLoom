@@ -21,10 +21,9 @@ from reacTk.widget.canvas.rectangle import (
 )
 from widget_state import (
     HigherOrderState,
-    FloatState,
+    NumberState,
     BoolState,
     StringState,
-    IntState,
     computed,
 )
 from widget_state.util import compute
@@ -32,7 +31,7 @@ from widget_state.util import compute
 from .slice_view import SliceView, SliceViewState, SITKData
 
 
-def cart2pol(pt: PointState) -> PointState[FloatState]:
+def cart2pol(pt: PointState) -> PointState[NumberState]:
     """
     Convert Cartesian to polar coordinates.
 
@@ -52,7 +51,7 @@ def cart2pol(pt: PointState) -> PointState[FloatState]:
     return PointState(distance, angle)
 
 
-def pol2cart(pt: PointState) -> PointState[IntState]:
+def pol2cart(pt: PointState) -> PointState[NumberState]:
     """
     Convert polar to Cartesian coordinates.
 
@@ -78,12 +77,12 @@ class ReorientationViewState(HigherOrderState):
         slice_view_state: SliceViewState,
         title: StringState,
         center: PointState,
-        x: Optional[FloatState] = None,
-        y: Optional[FloatState] = None,
-        angle: Optional[FloatState] = None,
-        distance: Optional[FloatState] = None,
-        start_angle: Optional[FloatState] = None,
-        rectangle_size: Optional[IntState] = None,
+        x: Optional[NumberState] = None,
+        y: Optional[NumberState] = None,
+        angle: Optional[NumberState] = None,
+        distance: Optional[NumberState] = None,
+        start_angle: Optional[NumberState] = None,
+        rectangle_size: Optional[NumberState] = None,
         style_center: Optional[RectangleStyle] = None,
         style_angle: Optional[RectangleStyle] = None,
         style_line: Optional[LineStyle] = None,
@@ -103,16 +102,16 @@ class ReorientationViewState(HigherOrderState):
 
         sitk_img = slice_view_state.sitk_img.value
         self.center = center
-        self.angle = angle if angle is not None else FloatState(0.0)
+        self.angle = angle if angle is not None else NumberState(0.0)
         self.distance = (
             distance
             if distance is not None
-            else FloatState(sitk_img.GetSize()[0] / 5.0)
+            else NumberState(sitk_img.GetSize()[0] / 5.0)
         )
-        self.start_angle = start_angle if start_angle is not None else FloatState(0.0)
+        self.start_angle = start_angle if start_angle is not None else NumberState(0.0)
 
         self.rectangle_size = (
-            rectangle_size if rectangle_size is not None else IntState(8)
+            rectangle_size if rectangle_size is not None else NumberState(8)
         )
         self.style_center = (
             style_center if style_center is not None else RectangleStyle(color="green")
@@ -127,9 +126,9 @@ class ReorientationViewState(HigherOrderState):
     @computed
     def pos_rect_angle_1(
         self,
-        distance: FloatState,
-        angle: FloatState,
-        start_angle: FloatState,
+        distance: NumberState,
+        angle: NumberState,
+        start_angle: NumberState,
         center: PointState,
     ) -> PointState:
         return center + pol2cart(
@@ -139,9 +138,9 @@ class ReorientationViewState(HigherOrderState):
     @computed
     def pos_rect_angle_2(
         self,
-        distance: FloatState,
-        angle: FloatState,
-        start_angle: FloatState,
+        distance: NumberState,
+        angle: NumberState,
+        start_angle: NumberState,
         center: PointState,
     ) -> PointState:
         return center - pol2cart(

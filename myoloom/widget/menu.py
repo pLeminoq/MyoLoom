@@ -9,6 +9,7 @@ import pandas as pd
 import tkinter as tk
 from tkinter import filedialog
 
+from ..polar_map.polar_map import polar_map_state
 from ..state import AppState
 from .file_dialog import FileDialog
 
@@ -46,6 +47,10 @@ class MenuFile(tk.Menu):
             label="Import Reorientation", command=self.import_reorientation
         )
 
+        self.add_command(
+            label="Export Segment Scores", command=self.export_segment_scores
+        )
+
         # create a variable for the filename to save as
         self.save_filename = tk.StringVar(value="")
         # disable the save command
@@ -74,6 +79,35 @@ class MenuFile(tk.Menu):
 
         with open(self.save_filename.get(), mode="w") as f:
             json.dump(self.app_state.serialize(), f, indent=2)
+
+    def export_segment_scores(self):
+        filename = filedialog.asksaveasfilename()
+
+        table_new = pd.DataFrame(
+            {
+                "filename": [os.path.basename(self.app_state.filename.value)],
+                "segment_scores": [
+                    ";".join([str(s.value) for s in polar_map_state.segment_scores])
+                ],
+            }
+        )
+
+        if os.path.isfile(filename):
+            table = pd.read_csv(filename)
+            index=table[table["filename"] == os.path.basename(self.app_state.filename.value)].index
+            print(f"Drop {index}")
+            table = table.drop(
+                index=index
+            )
+            # concatenate current state
+            table = pd.concat((table, table_new), ignore_index=False)
+        else:
+            table = table_new
+        table.to_csv(filename, index=False)
+
+    def save_as(self):
+        self.app_state.filename_save.set(filedialog.asksaveasfilename())
+        self.save()
 
     def load(self):
         filename = filedialog.askopenfile()

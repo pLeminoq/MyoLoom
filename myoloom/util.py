@@ -136,7 +136,7 @@ def pad_crop(
     value: float
         value used for padding
 
-    Returns
+    returns
     -------
     sitk.Image
     """

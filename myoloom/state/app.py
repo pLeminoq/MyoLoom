@@ -3,9 +3,8 @@ import time
 import numpy as np
 import SimpleITK as sitk
 from widget_state import (
-    FloatState,
+    NumberState,
     HigherOrderState,
-    IntState,
     StringState,
     computed,
 )
@@ -29,8 +28,8 @@ class AppState(HigherOrderState):
         super().__init__()
 
         self.filename = StringState("")
-        self.clip_percentage = FloatState(1.0)
-        self.rectangle_size = IntState(8)
+        self.clip_percentage = NumberState(1.0)
+        self.rectangle_size = NumberState(8)
 
         self.sitk_img = SITKData(get_empty_image())
 
@@ -92,10 +91,12 @@ class AppState(HigherOrderState):
 
             # update angles in reorientation state
             euler_trans.SetMatrix(rot_mat.flatten())
-            self.reorientation.angle.x.value = euler_trans.GetAngleX() + np.deg2rad(
-                90
-            )  # we have to revert the -90° rotation around x which rotates a HLA into an SA image
-            self.reorientation.angle.z.value = euler_trans.GetAngleZ()
+            with self.reorientation:
+                self.reorientation.angle.x.value = euler_trans.GetAngleX() + np.deg2rad(
+                    90
+                )  # we have to revert the -90° rotation around x which rotates a HLA into an SA image
+                # self.reorientation.angle.y.value = euler_trans.GetAngleY()
+                self.reorientation.angle.z.value = euler_trans.GetAngleZ()
             return
 
         self.sitk_img.value = square_pad(load_image(self.filename.value))
@@ -142,6 +143,16 @@ class AppState(HigherOrderState):
 
         _img = img_reoriented.value[:]
         _img = sitk.PermuteAxes(_img, (2, 0, 1))
+
+        center = _img.TransformContinuousIndexToPhysicalPoint(
+            np.array(_img.GetSize()) / 2.0
+        )
+        _img = sitk.Resample(
+            _img,
+            sitk.Euler3DTransform(center, 0.0, np.rad2deg(-90), 0.0),
+            sitk.sitkLinear,
+            0.0,
+        )
         return SITKData(_img)
 
     @computed

@@ -15,8 +15,7 @@ from widget_state import (
     BasicState,
     HigherOrderState,
     ObjectState,
-    IntState,
-    FloatState,
+    NumberState,
 )
 
 from ..util import normalize_image
@@ -36,9 +35,9 @@ class SliceViewState(HigherOrderState):
     def __init__(
         self,
         sitk_img: SITKData,
-        slice: Optional[IntState] = None,
-        clip_percentage: Optional[FloatState] = None,
-        colormap: Optional[IntState] = None,
+        slice: Optional[NumberState] = None,
+        clip_percentage: Optional[NumberState] = None,
+        colormap: Optional[NumberState] = None,
     ):
         super().__init__()
 
@@ -50,18 +49,18 @@ class SliceViewState(HigherOrderState):
         self.slice = (
             slice
             if slice is not None
-            else IntState(self.sitk_img.value.GetSize()[2] // 2)
+            else NumberState(self.sitk_img.value.GetSize()[2] // 2)
         )
         self.clip_percentage = (
-            clip_percentage if clip_percentage is not None else FloatState(1.0)
+            clip_percentage if clip_percentage is not None else NumberState(1.0)
         )
-        self.colormap = colormap if colormap is not None else IntState(None)
+        self.colormap = colormap if colormap is not None else NumberState(None)
 
         self._validate_computed_states()
 
     @computed
     def normalized_image(
-        self, sitk_img: SITKData, clip_percentage: FloatState
+        self, sitk_img: SITKData, clip_percentage: NumberState
     ) -> ImageData:
         image = sitk.GetArrayFromImage(sitk_img.value)
         if image.max() == image.min() == 0.0:
@@ -78,8 +77,8 @@ class SliceViewState(HigherOrderState):
     def slice_image(
         self,
         normalized_image: ImageData,
-        slice: IntState,
-        colormap: IntState,
+        slice: NumberState,
+        colormap: NumberState,
     ) -> ImageData:
         """
         Convert the SITK image to an np.array and normalize the image.
@@ -125,7 +124,7 @@ class SliceView(ttk.Frame):
                 min_value=0,
                 max_value=compute(
                     [state.sitk_img],
-                    lambda: IntState(state.sitk_img.value.GetSize()[0] - 1),
+                    lambda: NumberState(state.sitk_img.value.GetSize()[0] - 1),
                 ),
                 length=100,
                 orientation=tk.HORIZONTAL,

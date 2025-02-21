@@ -9,7 +9,7 @@ from reacTk.state import PointState
 from reacTk.util import get_active_monitor
 from reacTk.widget.canvas.rectangle import RectangleStyle
 
-from widget_state import IntState, FloatState
+from widget_state import NumberState
 from widget_state.util import compute
 
 from .state import *
@@ -68,7 +68,7 @@ class App(ttk.Frame):
                 angle=self.state.reorientation.angle.z,
                 distance=compute(
                     [state.sitk_img],
-                    lambda: FloatState(state.sitk_img.value.GetHeight() * 0.2),
+                    lambda: NumberState(state.sitk_img.value.GetHeight() * 0.2),
                 ),
                 start_angle=np.deg2rad(270),
                 rectangle_size=state.rectangle_size,
@@ -92,7 +92,7 @@ class App(ttk.Frame):
                 angle=self.state.reorientation.angle.x,
                 distance=compute(
                     [state.sitk_img],
-                    lambda: FloatState(state.sitk_img.value.GetHeight() * 0.2),
+                    lambda: NumberState(state.sitk_img.value.GetHeight() * 0.2),
                 ),
                 start_angle=np.deg2rad(180),
                 rectangle_size=state.rectangle_size,
@@ -109,7 +109,7 @@ class App(ttk.Frame):
                     sitk_img=self.state.img_reoriented,
                     slice=compute(
                         [state.sitk_img],
-                        lambda: IntState(state.sitk_img.value.GetHeight() // 2),
+                        lambda: NumberState(state.sitk_img.value.GetHeight() // 2),
                     ),
                     clip_percentage=self.state.clip_percentage,
                     colormap=cv.COLORMAP_INFERNO,
@@ -125,7 +125,7 @@ class App(ttk.Frame):
                     sitk_img=self.state.img_sa,
                     slice=compute(
                         [state.sitk_img],
-                        lambda: IntState(state.sitk_img.value.GetHeight() // 2),
+                        lambda: NumberState(state.sitk_img.value.GetHeight() // 2),
                     ),
                     clip_percentage=self.state.clip_percentage,
                     colormap=cv.COLORMAP_INFERNO,
@@ -141,7 +141,7 @@ class App(ttk.Frame):
                     sitk_img=self.state.img_vla,
                     slice=compute(
                         [state.sitk_img],
-                        lambda: IntState(state.sitk_img.value.GetHeight() // 2),
+                        lambda: NumberState(state.sitk_img.value.GetHeight() // 2),
                     ),
                     clip_percentage=self.state.clip_percentage,
                     colormap=cv.COLORMAP_INFERNO,

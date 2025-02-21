@@ -63,15 +63,20 @@ polar_map_app.grid(sticky="nswe")
 notebook.add(app, text="Reorientation")
 notebook.add(polar_map_app, text="Polar Map")
 
-# root.after(0, lambda: notebook.select(1))
+def filename_obs(self, *_):
+    polar_map_state.input_image.set(app_state.img_reoriented.value)
+
+def on_tab_change(event):
+    selected = event.widget.index(notebook.select())
+    if selected == 0:
+        if filename_obs not in app_state.filename._callbacks:
+            return
+        app_state.filename.remove_callback(filename_obs)
+    elif selected == 1:
+        app_state.filename.on_change(filename_obs, trigger=True)
 
 
-def test(event):
-    if event.widget.index(notebook.select()) == 1:
-        polar_map_state.input_image.set(app_state.img_reoriented.value)
-
-
-notebook.bind("<<NotebookTabChanged>>", test)
+notebook.bind("<<NotebookTabChanged>>", on_tab_change)
 
 root.bind("<Key-q>", lambda event: exit(0))
 root.mainloop()

@@ -5,16 +5,16 @@ from typing import Optional
 from reacTk.decorator import stateful
 from reacTk.widget.label import Label, LabelState
 from reacTk.state import to_tk_var
-from widget_state import IntState, FloatState, DictState, StringState
+from widget_state import NumberState, DictState, StringState
 
 
 class ScaleState(DictState):
     def __init__(
         self,
-        value: FloatState,
-        min_value: FloatState,
-        max_value: FloatState,
-        length: IntState,
+        value: NumberState,
+        min_value: NumberState,
+        max_value: NumberState,
+        length: NumberState,
         orientation: Optional[StringState] = None,
         formatter: Optional[StringState] = None,
     ):
