@@ -1,16 +1,28 @@
+import io
 import math
-       
+import tkinter as tk
+from tkinter import filedialog
+from tkinter import ttk
+
 import cv2 as cv
 import numpy as np
 from numpy.typing import NDArray
 import scipy
-import tkinter as tk
 
 from reacTk.state import PointState
+from reacTk.widget.chechbox import Checkbox, CheckBoxProperties, CheckBoxState
 from reacTk.widget.canvas import Canvas, CanvasState
 from reacTk.widget.canvas.image import Image, ImageData, ImageState, ImageStyle
 from reacTk.widget.canvas.text import Text, TextData, TextState, TextStyle
-from widget_state import HigherOrderState, IntState, computed, compute, StringState, ListState
+from widget_state import (
+    HigherOrderState,
+    IntState,
+    computed,
+    compute,
+    StringState,
+    ListState,
+    BoolState,
+)
 
 from .sampling import cartesian_grid
 from .segment import SEGMENTS, segment_vertices, segment_center, segment_mask
@@ -61,6 +73,8 @@ class PolarMapState(HigherOrderState):
     def __init__(self, radial_activities: ImageData):
         super().__init__()
 
+        self.draw_segment_scores = BoolState(True)
+
         self.n_samples = IntState(256)
         self.radial_activities = radial_activities
 
@@ -70,7 +84,12 @@ class PolarMapState(HigherOrderState):
         self._validate_computed_states()
 
     @computed
-    def image(self, radial_activities: ImageData, n_samples: IntState) -> ImageData:
+    def image(
+        self,
+        radial_activities: ImageData,
+        n_samples: IntState,
+        draw_segment_scores: BoolState,
+    ) -> ImageData:
         grid = cartesian_grid(self.radial_activities.value, n_samples=n_samples.value)
         image = scipy.ndimage.map_coordinates(
             self.radial_activities.value, grid, order=3, mode="constant", cval=0.0
@@ -86,7 +105,10 @@ class PolarMapState(HigherOrderState):
         image = cv.applyColorMap(image, cv.COLORMAP_INFERNO)
         # Note: we should resize before drawing the segments grid, so that lines are sharp
         image = cv.resize(image, (512, 512))
-        image = draw_segments_grid(image)
+
+        if draw_segment_scores.value:
+            image = draw_segments_grid(image)
+
         image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
         return ImageData(image)
 
@@ -104,18 +126,52 @@ class PolarMapState(HigherOrderState):
 
             segment_score.value = score
 
+
 polar_map_state = PolarMapState(np.zeros((32, 128)))
 
-class PolarMap(Canvas):
+
+class PolarMap(ttk.Frame):
 
     def __init__(self, parent: tk.Widget, state: PolarMapState):
-        super().__init__(parent, CanvasState())
+        super().__init__(parent)
 
-        self.image = Image(self, ImageState(state.image))
-        self.segment_scores = []
-        for segment, segment_score in zip(SEGMENTS, state.segment_scores):
+        self.columnconfigure(0, weight=1)
+        self.rowconfigure(0, weight=10)
+        self.rowconfigure(1, weight=1)
+
+        self.state = state
+
+        self.canvas = Canvas(self, CanvasState())
+        self.canvas.grid(column=0, row=0, sticky="nswe")
+        self.image = Image(self.canvas, ImageState(self.state.image))
+        self.segment_score_texts = []
+        self.state.draw_segment_scores.on_change(
+            self.draw_segment_score_texts, trigger=True
+        )
+
+        self.draw_segments_checkbox = Checkbox(
+            self,
+            CheckBoxState(
+                self.state.draw_segment_scores,
+                CheckBoxProperties(label="Draw Segments"),
+            ),
+        )
+        self.draw_segments_checkbox.grid(column=0, row=1)
+
+        self.context_menu = tk.Menu(self, tearoff=False)
+        self.context_menu.add_command(label="Save as", command=self.save_canvas_content)
+        self.canvas.bind("<Button-3>", self.popup_menu)
+
+    def draw_segment_score_texts(self, active: BoolState) -> None:
+        if not active.value:
+            for text in self.segment_score_texts:
+                text.delete()
+            self.segment_score_texts.clear()
+            return
+
+        for segment, segment_score in zip(SEGMENTS, self.state.segment_scores):
             text_position = compute(
-                [self.image._state, self._state],
+                [self.image._state],
                 lambda segment=segment: PointState(
                     *self.image.to_canvas(
                         *segment_center(
@@ -125,12 +181,39 @@ class PolarMap(Canvas):
                 ),
             )
             text = segment_score.transform(lambda s: StringState(str(s.value)))
-            self.segment_scores.append(
+            self.segment_score_texts.append(
                 Text(
-                    self,
+                    self.canvas,
                     TextState(
                         TextData(text, text_position),
-                        style=TextStyle(color="white", anchor="center"),
+                        style=TextStyle(color="white", anchor="center", font_size=20),
                     ),
                 )
             )
+
+    def popup_menu(self, event):
+        try:
+            self.context_menu.tk_popup(event.x_root, event.y_root)
+        finally:
+            self.context_menu.grab_release()
+
+    def save_canvas_content(self):
+        filename = filedialog.asksaveasfilename()
+
+        """
+        We directly use the numpy array and re-draw segment scores with OpenCV
+        if necessary, because the font looks terrible of the image is retrieved from
+        the canvas via `postscript`.
+        """
+        img = self.state.image.value
+        img = cv.cvtColor(img, cv.COLOR_RGB2BGR)
+        if self.state.draw_segment_scores.value:
+            for segment, segment_score in zip(SEGMENTS, self.state.segment_scores):
+                text_position = segment_center(segment, img.shape[0] // 2)
+                text_position = (text_position[0] - 20, text_position[1] + 10)
+                text = f"{segment_score.value}"
+                cv.putText(img, text, text_position, fontFace=cv.FONT_HERSHEY_SIMPLEX, lineType=cv.LINE_AA, fontScale=1.0, color=(255, 255, 255), thickness=2)
+
+        cv.imwrite(filename, img)
+
+
