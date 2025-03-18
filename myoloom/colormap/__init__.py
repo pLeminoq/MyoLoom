@@ -25,5 +25,9 @@ for f in os.listdir(dir_res):
     name = os.path.basename(f).split(".")[0]
     colormaps[name] = cm
 
+cm_gray = np.arange(256).astype(np.uint8)
+cm_gray = cm_gray[:, np.newaxis].repeat(3, axis=1)
+colormaps["gray"] = cm_gray
+
 
 __all__ = ["colormaps"]
