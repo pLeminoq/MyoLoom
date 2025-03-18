@@ -10,6 +10,7 @@ from numpy.typing import NDArray
 import scipy
 
 from reacTk.state import PointState
+from reacTk.state.util import to_tk_var
 from reacTk.widget.chechbox import Checkbox, CheckBoxProperties, CheckBoxState
 from reacTk.widget.canvas import Canvas, CanvasState
 from reacTk.widget.canvas.image import Image, ImageData, ImageState, ImageStyle
@@ -23,6 +24,8 @@ from widget_state import (
     ListState,
     BoolState,
 )
+
+from ..colormap import colormaps
 
 from .sampling import cartesian_grid
 from .segment import SEGMENTS, segment_vertices, segment_center, segment_mask
@@ -74,6 +77,7 @@ class PolarMapState(HigherOrderState):
         super().__init__()
 
         self.draw_segment_scores = BoolState(True)
+        self.colormap = StringState("prism")
 
         self.n_samples = IntState(256)
         self.radial_activities = radial_activities
@@ -89,6 +93,7 @@ class PolarMapState(HigherOrderState):
         radial_activities: ImageData,
         n_samples: IntState,
         draw_segment_scores: BoolState,
+        colormap: StringState,
     ) -> ImageData:
         grid = cartesian_grid(self.radial_activities.value, n_samples=n_samples.value)
         image = scipy.ndimage.map_coordinates(
@@ -102,14 +107,20 @@ class PolarMapState(HigherOrderState):
 
         image = image / image.max()
         image = (255 * image).astype(np.uint8)
-        image = cv.applyColorMap(image, cv.COLORMAP_INFERNO)
+        # apply colormap
+        image = colormaps[colormap.value][image]
+        # mask the polar map circle because some colormaps are not black at zero
+        mask = np.zeros(image.shape[:2], np.uint8)
+        mask = cv.circle(mask, (mask.shape[1] // 2, mask.shape[0] // 2), radius=mask.shape[0] // 2, color=255, thickness=-1)
+        image = cv.bitwise_and(image, image, mask=mask)
         # Note: we should resize before drawing the segments grid, so that lines are sharp
         image = cv.resize(image, (512, 512))
+
 
         if draw_segment_scores.value:
             image = draw_segments_grid(image)
 
-        image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
+        # image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
         return ImageData(image)
 
     def compute_segment_scores(self, radial_activities: ImageData) -> None:
@@ -136,13 +147,14 @@ class PolarMap(ttk.Frame):
         super().__init__(parent)
 
         self.columnconfigure(0, weight=1)
+        self.columnconfigure(1, weight=1)
         self.rowconfigure(0, weight=10)
         self.rowconfigure(1, weight=1)
 
         self.state = state
 
         self.canvas = Canvas(self, CanvasState())
-        self.canvas.grid(column=0, row=0, sticky="nswe")
+        self.canvas.grid(column=0, row=0, sticky="nswe", columnspan=2)
         self.image = Image(self.canvas, ImageState(self.state.image))
         self.segment_score_texts = []
         self.state.draw_segment_scores.on_change(
@@ -161,6 +173,9 @@ class PolarMap(ttk.Frame):
         self.context_menu = tk.Menu(self, tearoff=False)
         self.context_menu.add_command(label="Save as", command=self.save_canvas_content)
         self.canvas.bind("<Button-3>", self.popup_menu)
+
+        self.options = tk.OptionMenu(self, to_tk_var(self.state.colormap), *colormaps.keys())
+        self.options.grid(column=1, row=1)
 
     def draw_segment_score_texts(self, active: BoolState) -> None:
         if not active.value:
